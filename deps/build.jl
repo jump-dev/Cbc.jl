@@ -8,6 +8,7 @@ if !isfile("$libname.tgz")
     run(`tar xvzf $libname.tgz`)
     cd("$libname")
     run(`cat ../CoinMP-makefile.patch` | `patch -p1`)
+    run(`cat ../CoinMP-strcmp.patch` | `patch -p1`)
     run(`./configure --prefix=$prefix`)
     run(`make install`)
 end

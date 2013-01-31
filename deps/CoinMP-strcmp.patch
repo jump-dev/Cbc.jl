@@ -1,0 +1,16 @@
+diff -ur CoinMP-1.6.0/CoinMP/src/CoinOption.c CoinMP-1.6.0-new/CoinMP/src/CoinOption.c
+--- CoinMP-1.6.0/CoinMP/src/CoinOption.c	2009-11-18 19:45:20.000000000 -0500
++++ CoinMP-1.6.0-new/CoinMP/src/CoinOption.c	2013-01-31 17:28:30.634225741 -0500
+@@ -125,10 +125,10 @@
+ 	int i;
+ 
+ 	for (i = 0; i < pOption->OptionCount; i++) {
+-		if (STRING_COMPARE_NOCASE(OptionName, pOption->OptionTable[i].OptionName) != 0) {
++		if (STRING_COMPARE_NOCASE(OptionName, pOption->OptionTable[i].OptionName) == 0) {
+ 			return pOption->OptionTable[i].OptionID;
+ 		}
+-		if (STRING_COMPARE_NOCASE(OptionName, pOption->OptionTable[i].ShortName) != 0) {
++		if (STRING_COMPARE_NOCASE(OptionName, pOption->OptionTable[i].ShortName) == 0) {
+ 			return pOption->OptionTable[i].OptionID;
+ 		}
+ 	}
