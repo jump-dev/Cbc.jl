@@ -199,7 +199,7 @@ for (n1, n2) in ( ("Value",""), ("Default","DefaultValue"),
     ("Min","MinValue"), ("Max","MaxValue") )
     fname = symbol(strcat("getOption",n1))
     coinint = symbol(strcat("GetIntOption",n2))
-    coinreal = symbol(strcat("GetRealOptio",n2))
+    coinreal = symbol(strcat("GetRealOption",n2))
     @eval begin function $(fname)(prob::CoinProblem, name::ASCIIString)
         id = LocateOptionName(prob,name)
         t = GetOptionType(prob,id)
