@@ -1,5 +1,4 @@
 
-
 module CoinMP
 
 include(joinpath(Pkg.dir(),"CoinMP","deps","ext.jl"))
@@ -433,7 +432,7 @@ end
 
 # TODO: CoinGetOptionGroup
 
-# 2 -- INT, 4 -- REAL, 
+# 1 -- 0/1, 2 -- INT, 4 -- REAL, 
 function GetOptionType(prob::CoinProblem, OptionID::Integer)
     check_problem(prob)
     @coin_ccall GetOptionType Int32 (Ptr{Void},Int32) prob.p OptionID
