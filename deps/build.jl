@@ -1,4 +1,5 @@
-require("BinDeps")
+using BinDeps
+
 @unix_only begin
 libname = "CoinMP-1.6.0"
 prefix = joinpath(Pkg.dir(),"CoinMP","deps","usr")
