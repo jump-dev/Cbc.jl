@@ -1,0 +1,17 @@
+diff -ur CoinMP-1.6.0/CoinMP/src/CoinCbc.cpp CoinMP-1.6.0-new/CoinMP/src/CoinCbc.cpp
+--- CoinMP-1.6.0/CoinMP/src/CoinCbc.cpp	2011-11-02 23:58:54.000000000 -0400
++++ CoinMP-1.6.0-new/CoinMP/src/CoinCbc.cpp	2013-04-22 16:50:34.343084863 -0400
+@@ -940,8 +940,11 @@
+ 			CbcSetCbcOptions(hCbc, pOption);
+ 			//CbcSetCglOptions(hProb);  BK: CbcMain1 will call the Cgl's automatically
+ 			CbcOrClpRead_mode = 1;  // BK: Fix bug in CbcMain1, CbcOrClpRead_mode not initialized  (CpcSolver.cpp, stable 2.2)
+-			const int argc = 3;
+-			const char* argv[] = {"CoinMP", "-solve", "-quit"};
++
++			char logstr[5];
++			snprintf(logstr,5,"%d",coinGetIntOption(pOption, COIN_INT_LOGLEVEL));
++			const int argc = 5;
++			const char* argv[] = {"CoinMP", "-log", logstr, "-solve", "-quit"};
+ 			CbcMain1(argc,argv,*pCbc->cbc);
+ 			}
+ 		else 

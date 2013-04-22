@@ -66,10 +66,10 @@ export CONTINUOUS, INTEGER,
 #
 # vartype is a vector specifying the type of each variable
 # These can be CONTINUOUS or INTEGER.
-# options (optional argument) is a collection of (OptionName,Value) tuples.
+# options may be provided as named arguments
 # The list of possible options is obtained by calling optionList() 
 
-function mixintprog(f, A, rowlb, rowub, lb, ub, vartype::Vector, options)
+function mixintprog(f, A, rowlb, rowub, lb, ub, vartype::Vector; options...)
     c = CoinProblem()
     LoadMatrix(c, 1, 0., f,  lb, ub, rowlb, rowub, A)
     ncol = GetColCount(c)
@@ -86,7 +86,7 @@ function mixintprog(f, A, rowlb, rowub, lb, ub, vartype::Vector, options)
     end
     LoadInteger(c, coltype)
     for (optname, optval) in options
-        setOption(c, optname, optval)
+        setOption(c, string(optname), optval)
     end
         
     OptimizeProblem(c)
@@ -96,11 +96,6 @@ function mixintprog(f, A, rowlb, rowub, lb, ub, vartype::Vector, options)
     else
         return (GetObjectValue(c),GetSolutionValues(c),stat)
     end
-end
-
-
-function mixintprog(f, A, rowlb, rowub, lb, ub, vartype::Vector)
-    mixintprog(f,A,rowlb,rowub,lb,ub,vartype,[])
 end
 
 

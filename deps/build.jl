@@ -10,6 +10,7 @@ if !isfile("$libname.tgz")
     cd("$libname")
     run(`cat ../CoinMP-makefile.patch` | `patch -p1`)
     run(`cat ../CoinMP-strcmp.patch` | `patch -p1`)
+    run(`cat ../CoinMP-loglevel.patch` | `patch -p1`)
     run(`./configure --prefix=$prefix`)
     run(`make install`)
 end
