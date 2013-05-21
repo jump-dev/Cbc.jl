@@ -3,12 +3,14 @@ module CoinMP
 
 include(joinpath(Pkg.dir(),"CoinMP","deps","ext.jl"))
 
+require(joinpath(Pkg.dir("MathProgBase"),"src","LinprogSolverInterface.jl"))
+importall LinprogSolverInterface
 
 const CONTINUOUS = 1
 const INTEGER = 2 # including binary
 
 export CONTINUOUS, INTEGER,
-    mixintprog,
+#    mixintprog,
     optionList,
     setOption,
     getOptionValue,
@@ -236,7 +238,7 @@ function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
     objective_offset::Float64, objective_coeffs::VecOrNothing, 
     col_lb::VecOrNothing, col_ub::VecOrNothing,
     row_lb::VecOrNothing, row_ub::VecOrNothing,
-    constraint_matrix::AbstractMatrix{Float64})
+    constraint_matrix::AbstractMatrix)
     check_problem(prob)
 
     mat = convert(SparseMatrixCSC{Float64,Int32},convert(SparseMatrixCSC,constraint_matrix))
@@ -487,7 +489,7 @@ function SetStringOption(prob::CoinProblem, OptionID::Integer, Value::ASCIIStrin
     @coin_checkedccall SetStringOption (Ptr{Void},Int32,Ptr{Uint8}) prob.p OptionID Value
 end
 
-
+include("CoinMPSolverInterface.jl")
 
 
 
