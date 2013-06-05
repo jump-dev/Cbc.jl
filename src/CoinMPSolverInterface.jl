@@ -63,8 +63,15 @@ optimize(m::CoinMPSolver) = OptimizeProblem(m.inner)
 
 function status(m::CoinMPSolver)
     stat = GetSolutionText(m.inner)
-    if stat == "Optimal solution found"
-        return :Optimal
+    # CoinMP status reporting is faulty,
+    # add logic from CbcModel.cpp.
+    objval = GetObjectValue(m.inner)
+    if stat == "Optimal solution found" 
+        if objval < 1e30
+            return :Optimal
+        else
+            return :Infeasible
+        end
     elseif stat == "Problem primal infeasible"
         return :Infeasible
     elseif stat == "Problem dual infeasible" # what does this mean for MIP??
