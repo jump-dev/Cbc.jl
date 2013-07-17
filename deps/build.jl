@@ -3,6 +3,7 @@ using BinDeps
 @unix_only begin
 libname = "CoinMP-1.6.0"
 prefix = joinpath(Pkg.dir(),"CoinMP","deps","usr")
+cd(joinpath(Pkg.dir(),"CoinMP","deps"))
 libdir = joinpath(JULIA_HOME,"..","lib")
 if !isfile("$libname.tgz")
     run(download_cmd("http://www.coin-or.org/download/source/CoinMP/$libname.tgz","$libname.tgz"))
@@ -25,4 +26,4 @@ end # unix_only
     end
 end
 
-
+Pkg2.markworking("CoinMP")
