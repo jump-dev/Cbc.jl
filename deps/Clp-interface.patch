@@ -1,0 +1,321 @@
+--- Clp/src/ClpModel.hpp	(revision 1900)
++++ Clp/src/ClpModel.hpp	(revision 1902)
+@@ -764,6 +764,10 @@
+          delete [] ray_;
+          ray_=NULL;
+      }
++	 /// Access internal ray storage. Users should call infeasibilityRay() or unboundedRay() instead.
++	 inline const double * internalRay() const {
++		 return ray_;
++	 }
+      /// See if status (i.e. basis) array exists (partly for OsiClp)
+      inline bool statusExists() const {
+           return (status_ != NULL);
+--- Clp/src/Clp_C_Interface.h	(revision 1900)
++++ Clp/src/Clp_C_Interface.h	(revision 1902)
+@@ -11,6 +11,14 @@
+ /* include all defines and ugly stuff */
+ #include "Coin_C_defines.h"
+ 
++#if defined (CLP_EXTERN_C)
++typedef struct {
++  ClpSolve options;
++} Clp_Solve;
++#else
++typedef void Clp_Solve;
++#endif
++
+ /** This is a first "C" interface to Clp.
+     It has similarities to the OSL V3 interface
+     and only has most common functions
+@@ -22,11 +30,15 @@
+ 
+      /**@name Constructors and destructor
+         These do not have an exact analogue in C++.
+-        The user does not need to know structure of Clp_Simplex.
++        The user does not need to know structure of Clp_Simplex or Clp_Solve.
+ 
+-        For all functions outside this group there is an exact C++
++        For (almost) all Clp_* functions outside this group there is an exact C++
+         analogue created by taking the first parameter out, removing the Clp_
+         from name and applying the method to an object of type ClpSimplex.
++        
++        Similarly, for all ClpSolve_* functions there is an exact C++
++        analogue created by taking the first parameter out, removing the ClpSolve_
++        from name and applying the method to an object of type ClpSolve.
+      */
+      /*@{*/
+ 
+@@ -34,6 +46,10 @@
+      COINLIBAPI Clp_Simplex * COINLINKAGE Clp_newModel(void);
+      /** Destructor */
+      COINLIBAPI void COINLINKAGE Clp_deleteModel(Clp_Simplex * model);
++     /** Default constructor */
++     COINLIBAPI Clp_Solve * COINLINKAGE ClpSolve_new();
++     /** Destructor */ 
++     COINLIBAPI void COINLINKAGE ClpSolve_delete(Clp_Solve * solve);
+      /*@}*/
+ 
+      /**@name Load model - loads some stuff and initializes others */
+@@ -197,7 +213,7 @@
+      /** Integer information */
+      COINLIBAPI char * COINLINKAGE Clp_integerInformation(Clp_Simplex * model);
+      /** Infeasibility/unbounded ray (NULL returned if none/wrong)
+-         Up to user to use delete [] on these arrays.  */
++         Up to user to use free() on these arrays.  */
+      COINLIBAPI double * COINLINKAGE Clp_infeasibilityRay(Clp_Simplex * model);
+      COINLIBAPI double * COINLINKAGE Clp_unboundedRay(Clp_Simplex * model);
+      /** See if status array exists (partly for OsiClp) */
+@@ -257,6 +273,8 @@
+          See  ClpSolve.hpp for options
+       */
+      COINLIBAPI int COINLINKAGE Clp_initialSolve(Clp_Simplex * model);
++     /** Pass solve options. (Exception to direct analogue rule) */ 
++     COINLIBAPI int COINLINKAGE Clp_initialSolveWithOptions(Clp_Simplex * model, Clp_Solve *);
+      /** Dual initial solve */
+      COINLIBAPI int COINLINKAGE Clp_initialDualSolve(Clp_Simplex * model);
+      /** Primal initial solve */
+@@ -400,6 +418,77 @@
+      COINLIBAPI double COINLINKAGE Clp_getSmallElementValue(Clp_Simplex * model);
+      COINLIBAPI void COINLINKAGE Clp_setSmallElementValue(Clp_Simplex * model, double value);
+      /*@}*/
++
++     
++     /**@name Get and set ClpSolve options
++     */
++     /*@{*/
++     COINLIBAPI void COINLINKAGE ClpSolve_setSpecialOption(Clp_Solve *, int which, int value, int extraInfo);
++     COINLIBAPI int COINLINKAGE ClpSolve_getSpecialOption(Clp_Solve *, int which);
++
++     /** method: (see ClpSolve::SolveType)
++         0 - dual simplex
++         1 - primal simplex
++         2 - primal or sprint
++         3 - barrier
++         4 - barrier no crossover
++         5 - automatic
++         6 - not implemented
++       -- pass extraInfo == -1 for default behavior */
++     COINLIBAPI void COINLINKAGE ClpSolve_setSolveType(Clp_Solve *, int method, int extraInfo);
++     COINLIBAPI int COINLINKAGE ClpSolve_getSolveType(Clp_Solve *);
++
++     /** amount: (see ClpSolve::PresolveType)
++         0 - presolve on
++         1 - presolve off
++         2 - presolve number
++         3 - presolve number cost
++       -- pass extraInfo == -1 for default behavior */
++     COINLIBAPI void COINLINKAGE ClpSolve_setPresolveType(Clp_Solve *, int amount, int extraInfo);
++     COINLIBAPI int COINLINKAGE ClpSolve_getPresolveType(Clp_Solve *);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_getPresolvePasses(Clp_Solve *);
++     COINLIBAPI int COINLINKAGE ClpSolve_getExtraInfo(Clp_Solve *, int which);
++     COINLIBAPI void COINLINKAGE ClpSolve_setInfeasibleReturn(Clp_Solve *, int trueFalse);
++     COINLIBAPI int COINLINKAGE ClpSolve_infeasibleReturn(Clp_Solve *);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doDual(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoDual(Clp_Solve *, int doDual);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doSingleton(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoSingleton(Clp_Solve *, int doSingleton);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doDoubleton(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoDoubleton(Clp_Solve *, int doDoubleton);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doTripleton(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoTripleton(Clp_Solve *, int doTripleton);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doTighten(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoTighten(Clp_Solve *, int doTighten);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doForcing(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoForcing(Clp_Solve *, int doForcing);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doImpliedFree(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoImpliedFree(Clp_Solve *, int doImpliedFree);
++     
++     COINLIBAPI int COINLINKAGE ClpSolve_doDupcol(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoDupcol(Clp_Solve *, int doDupcol);
++     
++     COINLIBAPI int COINLINKAGE ClpSolve_doDuprow(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoDuprow(Clp_Solve *, int doDuprow);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_doSingletonColumn(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setDoSingletonColumn(Clp_Solve *, int doSingleton);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_presolveActions(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setPresolveActions(Clp_Solve *, int action);
++
++     COINLIBAPI int COINLINKAGE ClpSolve_substitution(Clp_Solve *);
++     COINLIBAPI void COINLINKAGE ClpSolve_setSubstitution(Clp_Solve *, int value);
++
++     /*@}*/
+ #ifdef __cplusplus
+ }
+ #endif
+Index: Clp/src/Clp_C_Interface.cpp
+===================================================================
+--- Clp/src/Clp_C_Interface.cpp	(revision 1900)
++++ Clp/src/Clp_C_Interface.cpp	(revision 1902)
+@@ -637,16 +637,37 @@
+      return model->model_->integerInformation();
+ }
+ /* Infeasibility/unbounded ray (NULL returned if none/wrong)
+-   Up to user to use delete [] on these arrays.  */
++   Up to user to use free() on these arrays.  */
+ COINLIBAPI double * COINLINKAGE
+ Clp_infeasibilityRay(Clp_Simplex * model)
+ {
+-     return model->model_->infeasibilityRay();
++     const double * ray = model->model_->internalRay();
++     double * array = NULL;
++     int numberRows = model->model_->numberRows(); 
++     int status = model->model_->status();
++     if (status == 1 && ray) {
++          array = static_cast<double*>(malloc(numberRows*sizeof(double)));
++          memcpy(array,ray,numberRows*sizeof(double));
++#ifndef CLP_NO_SWAP_SIGN
++          // swap signs to be consistent with norm
++          for (int i = 0; i < numberRows; i++)
++               array[i] = -array[i];
++#endif
++     }
++     return array;
+ }
+ COINLIBAPI double * COINLINKAGE
+ Clp_unboundedRay(Clp_Simplex * model)
+ {
+-     return model->model_->unboundedRay();
++     const double * ray = model->model_->internalRay();
++     double * array = NULL;
++     int numberColumns = model->model_->numberColumns(); 
++     int status = model->model_->status();
++     if (status == 2 && ray) {
++          array = static_cast<double*>(malloc(numberColumns*sizeof(double)));
++          memcpy(array,ray,numberColumns*sizeof(double));
++     }
++     return array;
+ }
+ /* See if status array exists (partly for OsiClp) */
+ COINLIBAPI int COINLINKAGE
+@@ -744,6 +765,12 @@
+ {
+      return model->model_->initialSolve();
+ }
++/* Pass solve options. (Exception to direct analogue rule) */
++COINLIBAPI int COINLINKAGE
++Clp_initialSolveWithOptions(Clp_Simplex * model, Clp_Solve * s)
++{
++     return model->model_->initialSolve(s->options);
++}
+ /* Barrier initial solve */
+ COINLIBAPI int COINLINKAGE
+ Clp_initialBarrierSolve(Clp_Simplex * model0)
+@@ -1190,6 +1217,107 @@
+ }
+ #endif
+ 
++COINLIBAPI Clp_Solve * COINLINKAGE 
++ClpSolve_new() 
++{ 
++    return new Clp_Solve(); 
++}
++
++COINLIBAPI void COINLINKAGE 
++ClpSolve_delete(Clp_Solve * solve) 
++{ 
++    delete solve; 
++}
++
++// space- and error-saving macros
++#define ClpSolveGetIntProperty(prop) \
++COINLIBAPI int COINLINKAGE \
++ClpSolve_ ## prop (Clp_Solve *s) \
++{ \
++    return s->options.prop(); \
++}
++
++#define ClpSolveSetIntProperty(prop) \
++COINLIBAPI void COINLINKAGE \
++ClpSolve_ ## prop (Clp_Solve *s, int val) \
++{ \
++    s->options.prop(val); \
++}
++
++COINLIBAPI void COINLINKAGE 
++ClpSolve_setSpecialOption(Clp_Solve * s, int which, int value, int extraInfo) 
++{
++    s->options.setSpecialOption(which,value,extraInfo);
++}
++
++COINLIBAPI int COINLINKAGE 
++ClpSolve_getSpecialOption(Clp_Solve * s, int which)
++{
++    return s->options.getSpecialOption(which);
++}
++
++COINLIBAPI void COINLINKAGE 
++ClpSolve_setSolveType(Clp_Solve * s, int method, int extraInfo)
++{
++    s->options.setSolveType(static_cast<ClpSolve::SolveType>(method), extraInfo);
++}
++
++ClpSolveGetIntProperty(getSolveType)
++
++COINLIBAPI void COINLINKAGE ClpSolve_setPresolveType(Clp_Solve * s, int amount, int extraInfo)
++{
++    s->options.setPresolveType(static_cast<ClpSolve::PresolveType>(amount),extraInfo);
++}
++
++ClpSolveGetIntProperty(getPresolveType)
++
++ClpSolveGetIntProperty(getPresolvePasses)
++
++
++COINLIBAPI int COINLINKAGE 
++ClpSolve_getExtraInfo(Clp_Solve * s, int which) {
++     return s->options.getExtraInfo(which);
++}
++
++ClpSolveSetIntProperty(setInfeasibleReturn)
++ClpSolveGetIntProperty(infeasibleReturn)
++
++ClpSolveGetIntProperty(doDual)
++ClpSolveSetIntProperty(setDoDual)
++
++ClpSolveGetIntProperty(doSingleton)
++ClpSolveSetIntProperty(setDoSingleton)
++
++ClpSolveGetIntProperty(doDoubleton)
++ClpSolveSetIntProperty(setDoDoubleton)
++
++ClpSolveGetIntProperty(doTripleton)
++ClpSolveSetIntProperty(setDoTripleton)
++
++ClpSolveGetIntProperty(doTighten)
++ClpSolveSetIntProperty(setDoTighten)
++
++ClpSolveGetIntProperty(doForcing)
++ClpSolveSetIntProperty(setDoForcing)
++
++ClpSolveGetIntProperty(doImpliedFree)
++ClpSolveSetIntProperty(setDoImpliedFree)
++
++ClpSolveGetIntProperty(doDupcol)
++ClpSolveSetIntProperty(setDoDupcol)
++
++ClpSolveGetIntProperty(doDuprow)
++ClpSolveSetIntProperty(setDoDuprow)
++
++ClpSolveGetIntProperty(doSingletonColumn)
++ClpSolveSetIntProperty(setDoSingletonColumn)
++
++ClpSolveGetIntProperty(presolveActions)
++ClpSolveSetIntProperty(setPresolveActions)
++
++ClpSolveGetIntProperty(substitution)
++ClpSolveSetIntProperty(setSubstitution)
++
+ #if defined(__MWERKS__)
+ #pragma export off
+ #endif

@@ -1,19 +1,30 @@
-diff -u -r CoinMP-1.6.0/Cbc/configure CoinMP-1.6.0-new/Cbc/configure
---- CoinMP-1.6.0/Cbc/configure	2011-11-03 23:55:10.000000000 -0400
-+++ CoinMP-1.6.0-new/Cbc/configure	2013-01-30 10:32:01.961373628 -0500
-@@ -1839,9 +1839,6 @@
-     if test "x$svn_rev_tmp" != xexported -a "x$svn_rev_tmp" != x; then
-       CBC_SVN_REV=`echo $svn_rev_tmp | sed -n -e 's/^[0-9]*://' -e 's/\([0-9]\)[^0-9]*$/\1/p'`
+diff -ur CoinMP-1.7.0/Clp/src/Makefile.am CoinMP-1.7.0-new/Clp/src/Makefile.am
+--- CoinMP-1.7.0/Clp/src/Makefile.am	2011-06-19 12:27:26.000000000 -0400
++++ CoinMP-1.7.0-new/Clp/src/Makefile.am	2013-08-09 21:11:32.029564151 -0400
+@@ -95,6 +95,8 @@
+ # This is for libtool
+ libClp_la_LDFLAGS = $(LT_LDFLAGS)
  
--cat >>confdefs.h <<_ACEOF
--#define CBC_SVN_REV $CBC_SVN_REV
--_ACEOF
- 
-     fi
-   fi
-diff -u -r CoinMP-1.6.0/CoinMP/src/Makefile.in CoinMP-1.6.0-new/CoinMP/src/Makefile.in
---- CoinMP-1.6.0/CoinMP/src/Makefile.in	2011-08-07 11:09:46.000000000 -0400
-+++ CoinMP-1.6.0-new/CoinMP/src/Makefile.in	2013-01-30 10:23:03.569393951 -0500
++libClp_la_LIBADD = $(CLPLIB_DEPENDENCIES)
++
+ ########################################################################
+ #                            clp program                               #
+ ########################################################################
+diff -ur CoinMP-1.7.0/Clp/src/Makefile.in CoinMP-1.7.0-new/Clp/src/Makefile.in
+--- CoinMP-1.7.0/Clp/src/Makefile.in	2011-06-19 12:27:26.000000000 -0400
++++ CoinMP-1.7.0-new/Clp/src/Makefile.in	2013-08-09 21:11:32.029564151 -0400
+@@ -83,7 +83,7 @@
+ 	"$(DESTDIR)$(includecoindir)"
+ libLTLIBRARIES_INSTALL = $(INSTALL)
+ LTLIBRARIES = $(lib_LTLIBRARIES)
+-libClp_la_LIBADD =
++libClp_la_LIBADD = $(CLPLIB_DEPENDENCIES)
+ am__libClp_la_SOURCES_DIST = ClpConfig.h ClpCholeskyBase.cpp \
+ 	ClpCholeskyBase.hpp ClpCholeskyDense.cpp ClpCholeskyDense.hpp \
+ 	ClpConstraint.cpp ClpConstraint.hpp ClpConstraintLinear.cpp \
+diff -ur CoinMP-1.7.0/CoinMP/src/Makefile.in CoinMP-1.7.0-new/CoinMP/src/Makefile.in
+--- CoinMP-1.7.0/CoinMP/src/Makefile.in	2013-08-03 10:53:53.000000000 -0400
++++ CoinMP-1.7.0-new/CoinMP/src/Makefile.in	2013-08-09 21:10:13.101565038 -0400
 @@ -64,7 +64,7 @@
  am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includecoindir)"
  libLTLIBRARIES_INSTALL = $(INSTALL)
@@ -22,3 +33,16 @@ diff -u -r CoinMP-1.6.0/CoinMP/src/Makefile.in CoinMP-1.6.0-new/CoinMP/src/Makef
 +libCoinMP_la_LIBADD = $(COINMP_LIBS)
  am_libCoinMP_la_OBJECTS = CoinMP.lo CoinProblem.lo CoinResult.lo \
  	CoinSolver.lo CoinOption.lo CoinCbc.lo
+ libCoinMP_la_OBJECTS = $(am_libCoinMP_la_OBJECTS)
+Only in CoinMP-1.7.0-new/CoinMP/src: Makefile.in.orig
+diff -ur CoinMP-1.7.0/CoinUtils/src/Makefile.in CoinMP-1.7.0-new/CoinUtils/src/Makefile.in
+--- CoinMP-1.7.0/CoinUtils/src/Makefile.in	2011-06-19 11:34:41.000000000 -0400
++++ CoinMP-1.7.0-new/CoinUtils/src/Makefile.in	2013-08-09 21:11:32.029564151 -0400
+@@ -412,6 +412,7 @@
+ 
+ # This is for libtool
+ libCoinUtils_la_LDFLAGS = $(LT_LDFLAGS)
++libCoinUtils_la_LIBADD = $(COINUTILSLIB_LIBS)
+ 
+ # Here list all include flags, relative to this "srcdir" directory.  This
+ # "cygpath" stuff is necessary to compile with native compilers on Windows
