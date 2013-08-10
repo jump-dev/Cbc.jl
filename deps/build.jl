@@ -1,29 +1,41 @@
 using BinDeps
 
+@BinDeps.setup
+
 @unix_only begin
-libname = "CoinMP-1.6.0"
-prefix = joinpath(Pkg.dir(),"CoinMP","deps","usr")
-cd(joinpath(Pkg.dir(),"CoinMP","deps"))
-libdir = joinpath(JULIA_HOME,"..","lib")
-if !isfile("$libname.tgz")
-    run(download_cmd("http://www.coin-or.org/download/source/CoinMP/$libname.tgz","$libname.tgz"))
-    run(`tar xvzf $libname.tgz`)
-    cd("$libname")
-    run(`cat ../CoinMP-makefile.patch` | `patch -p1`)
-    run(`cat ../CoinMP-strcmp.patch` | `patch -p1`)
-    run(`cat ../CoinMP-loglevel.patch` | `patch -p1`)
-    run(`./configure --prefix=$prefix`)
-    run(`make install`)
+    libclp = library_dependency("libclp",aliases=["libClp"])
+    libcoinmp = library_dependency("libcoinmp",aliases=["libCoinMP"])
 end
-end # unix_only
-
 @windows_only begin
-    if !isfile("CoinMP_julia.tar.gz")
-        run(download_cmd("http://www.mit.edu/~mlubin/CoinMP_julia.tar.gz","CoinMP_julia.tar.gz"))
-    end
-    if !isfile("CoinMP.dll")
-        run(unpack_cmd("CoinMP_julia.tar.gz","."))
-    end
+    libclp = library_dependency("libclp",aliases=["CoinMP"])
+    libcoinmp = library_dependency("libcoinmp",aliases=["CoinMP"])
 end
 
-Pkg2.markworking("CoinMP")
+coinmpname = "CoinMP-1.7.0"
+
+provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname.tgz"),
+    [libclp,libcoinmp], os = :Unix)
+
+# TODO: Fix this tarball
+provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia.tar.gz"),
+    [libclp,libcoinmp], os = :Windows)
+
+prefix=joinpath(BinDeps.depsdir(libclp),"usr")
+patchdir=BinDeps.depsdir(libclp)
+srcdir = joinpath(BinDeps.depsdir(libclp),"src",coinmpname) 
+
+provides(SimpleBuild,
+    (@build_steps begin
+        GetSources(libclp)
+        @build_steps begin
+            ChangeDirectory(srcdir)
+            `cat $patchdir/CoinMP-makefile.patch` |> `patch -p1`
+            `cat $patchdir/CoinMP-strcmp.patch` |> `patch -p1`
+            `cat $patchdir/CoinMP-loglevel.patch` |> `patch -p1`
+            `cat $patchdir/Clp-interface.patch` |> `patch -p0`
+            `./configure --prefix=$prefix`
+            `make install`
+        end
+    end),[libclp,libcoinmp], os = :Unix)
+
+@BinDeps.install

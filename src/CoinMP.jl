@@ -1,7 +1,8 @@
 
 module CoinMP
 
-include(joinpath(Pkg.dir(),"CoinMP","deps","ext.jl"))
+using BinDeps
+@BinDeps.load_dependencies
 
 require(joinpath(Pkg.dir("MathProgBase"),"src","LinprogSolverInterface.jl"))
 importall LinprogSolverInterface
@@ -108,14 +109,14 @@ end
 macro coin_ccall(func, args...)
     f = "Coin$(func)"
     quote
-        ccall(($f,coinmp_lib), $(args...))
+        ccall(($f,libcoinmp), $(args...))
     end
 end
 
 macro coin_checkedccall(func, args...)
     f = "Coin$(func)"
     quote
-        ret = ccall(($f,coinmp_lib), Int32, $(args...))
+        ret = ccall(($f,libcoinmp), Int32, $(args...))
         if ret != 0
             error("Internal error in $f")
         end
