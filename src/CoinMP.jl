@@ -242,7 +242,7 @@ function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
     constraint_matrix::AbstractMatrix)
     check_problem(prob)
 
-    mat = convert(SparseMatrixCSC{Float64,Int32},convert(SparseMatrixCSC,constraint_matrix))
+    mat = convert(SparseMatrixCSC{Float64,Int32},constraint_matrix)
     nrow,ncol = mat.m, mat.n
 
     @coin_checkedccall LoadMatrix (Ptr{Void}, Int32, Int32, Int32, Int32, Int32,
