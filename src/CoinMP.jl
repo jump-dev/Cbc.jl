@@ -11,7 +11,6 @@ const CONTINUOUS = 1
 const INTEGER = 2 # including binary
 
 export CONTINUOUS, INTEGER,
-#    mixintprog,
     optionList,
     setOption,
     getOptionValue,
@@ -46,64 +45,6 @@ export CONTINUOUS, INTEGER,
     OpenLogFile,
     CloseLogFile
     
-
-
-## High-level interface
-# (z, x, flag) = mixintprog(f, A, rowlb, rowub, lb, ub, vartype, options)
-# Solves: 
-#   z = min_{x} (f' * x)
-#
-# where the vector x is subject to these constraints:
-#
-#   rowlb <= A * x <= rowub
-#   lb <= x <= ub
-#
-# The return flag is a string describing the status of the optimization.
-# Success is "Optimal solution found"
-# The following arguments may be nothing or [], in which case 
-# the default values are vectors of:
-# rowlb -- -Inf
-# rowub -- Inf
-# collb -- 0
-# colub -- Inf
-#
-# vartype is a vector specifying the type of each variable
-# These can be CONTINUOUS or INTEGER.
-# options may be provided as named arguments
-# The list of possible options is obtained by calling optionList() 
-
-function mixintprog(f, A, rowlb, rowub, lb, ub, vartype::Vector; options...)
-    c = CoinProblem()
-    LoadMatrix(c, 1, 0., f,  lb, ub, rowlb, rowub, A)
-    ncol = GetColCount(c)
-    if length(vartype) != ncol
-        error("Length of vector must equal number of variables in the problem")
-    end
-    coltype = Array(Uint8,ncol)
-    for i in 1:ncol
-        if vartype[i] == INTEGER
-            coltype[i] = 'I'
-        else
-            coltype[i] = 'C'
-        end
-    end
-    LoadInteger(c, coltype)
-    for (optname, optval) in options
-        setOption(c, string(optname), optval)
-    end
-        
-    OptimizeProblem(c)
-    stat = GetSolutionText(c)
-    if stat != "Optimal solution found"
-        return (nothing, nothing, stat)
-    else
-        return (GetObjectValue(c),GetSolutionValues(c),stat)
-    end
-end
-
-
-
-
 # helper macros/functions
 
 macro coin_ccall(func, args...)
