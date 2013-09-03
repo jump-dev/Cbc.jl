@@ -50,14 +50,17 @@ export CONTINUOUS, INTEGER,
 macro coin_ccall(func, args...)
     f = "Coin$(func)"
     quote
-        ccall(($f,libcoinmp), $(args...))
+        @unix_only ret = ccall(($f,libcoinmp), $(args...))
+        @windows_only ret = ccall(($f,libcoinmp), stdcall, $(args...))
+        ret
     end
 end
 
 macro coin_checkedccall(func, args...)
     f = "Coin$(func)"
     quote
-        ret = ccall(($f,libcoinmp), Int32, $(args...))
+        @unix_only ret = ccall(($f,libcoinmp), Int32, $(args...))
+        @windows_only ret = ccall(($f,libcoinmp), stdcall, Int32, $(args...))
         if ret != 0
             error("Internal error in $f")
         end
@@ -173,7 +176,7 @@ end
 # not sure the point of CoinGetFeatures and CoinGetMethods
 
 function GetInfinity()
-    @coin_ccall GetInfinity Float64()
+    @coin_ccall GetInfinity Float64 ()
 end
 
 function LoadMatrix(prob::CoinProblem, objective_sense::Integer,

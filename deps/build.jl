@@ -7,6 +7,9 @@ using BinDeps
     libcoinmp = library_dependency("libcoinmp",aliases=["libCoinMP"])
 end
 @windows_only begin
+    if Int != Int32
+        error("Win64 platform is not yet supported by this package")
+    end
     libclp = library_dependency("libclp",aliases=["CoinMP"])
     libcoinmp = library_dependency("libcoinmp",aliases=["CoinMP"])
 end
