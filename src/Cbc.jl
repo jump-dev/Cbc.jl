@@ -1,5 +1,5 @@
 
-module CoinMP
+module Cbc
 
 using BinDeps
 @BinDeps.load_dependencies
@@ -434,7 +434,7 @@ function SetStringOption(prob::CoinProblem, OptionID::Integer, Value::ASCIIStrin
     @coin_checkedccall SetStringOption (Ptr{Void},Int32,Ptr{Uint8}) prob.p OptionID Value
 end
 
-include("CoinMPSolverInterface.jl")
+include("CbcSolverInterface.jl")
 
 
 
