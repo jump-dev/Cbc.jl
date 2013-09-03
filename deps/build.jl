@@ -16,8 +16,7 @@ coinmpname = "CoinMP-1.7.0"
 provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname.tgz"),
     [libclp,libcoinmp], os = :Unix)
 
-# TODO: Fix this tarball
-provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia.tar.gz"),
+provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia_20130903.tar.gz"),
     [libclp,libcoinmp], os = :Windows)
 
 prefix=joinpath(BinDeps.depsdir(libclp),"usr")
