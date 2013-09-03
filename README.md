@@ -1,4 +1,4 @@
-CoinMP.jl
+Cbc.jl
 =========
 
 This is a somewhat complete Julia interface to the mixed-integer linear programming solver **[Cbc]** via the **[CoinMP]** C library. Cbc is a high-performance open-source solver. A basic high-level ``mixintprog`` interface is provided through the **[MathProgBase]** package. Solve options and callbacks are available but unforunately undocumented due to the absence of documentation for CoinMP. 
