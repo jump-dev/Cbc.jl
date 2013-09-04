@@ -22,6 +22,15 @@ provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname
 provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia_20130903.tar.gz"),
     [libclp,libcoinmp], os = :Windows)
 
+@osx_only begin
+  if( Pkg.installed("Homebrew") === nothing )
+    error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
+  else
+    using Homebrew
+    provides( Homebrew.HB, "coinmp", [libclp, libcoinmp], os = :Darwin )
+  end
+end
+
 prefix=joinpath(BinDeps.depsdir(libclp),"usr")
 patchdir=BinDeps.depsdir(libclp)
 srcdir = joinpath(BinDeps.depsdir(libclp),"src",coinmpname) 
