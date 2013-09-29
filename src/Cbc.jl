@@ -62,7 +62,7 @@ macro coin_checkedccall(func, args...)
         @unix_only ret = ccall(($f,libcoinmp), Int32, $(args...))
         @windows_only ret = ccall(($f,libcoinmp), stdcall, Int32, $(args...))
         if ret != 0
-            error("Internal error in $f")
+            error("Internal error in ", $f)
         end
     end
 end
