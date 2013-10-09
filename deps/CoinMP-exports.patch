@@ -1,11 +1,10 @@
-diff -ur CoinMP-1.6.0/CoinMP/src/CoinMP.def CoinMP-1.6.0-new//CoinMP/src/CoinMP.def
---- CoinMP-1.6.0/CoinMP/src/CoinMP.def	2013-01-26 19:38:30 -0500
-+++ CoinMP-1.6.0-new//CoinMP/src/CoinMP.def	2013-01-26 16:47:37 -0500
+diff -ur CoinMP-1.7.0/CoinMP/src/CoinMP.def CoinMP-1.7.0-new/CoinMP/src/CoinMP.def
+--- CoinMP-1.7.0/CoinMP/src/CoinMP.def	2011-11-02 21:05:02.000000000 -0400
++++ CoinMP-1.7.0-new/CoinMP/src/CoinMP.def	2013-10-09 12:57:55.779641086 -0400
 @@ -84,4 +84,172 @@
  	CoinGetStringOption
  	CoinGetStringOptionBuf
  	CoinSetStringOption
--	
 +	Clp_newModel
 +	Clp_deleteModel
 +	ClpSolve_new
@@ -174,4 +173,4 @@ diff -ur CoinMP-1.6.0/CoinMP/src/CoinMP.def CoinMP-1.6.0-new//CoinMP/src/CoinMP.
 +	ClpSolve_setPresolveActions
 +	ClpSolve_substitution
 +	ClpSolve_setSubstitution
-+
+ 	
