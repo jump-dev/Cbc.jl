@@ -33,7 +33,13 @@ end
 loadproblem(m::CoinMPSolver, A, collb, colub, obj, rowlb, rowub) =
     LoadMatrix(m.inner, 1, 0.0, obj, collb, colub, rowlb, rowub, A)
 
-# writeproblem(m::CoinMPSolver, filename::String)
+function writeproblem(m::CoinMPSolver, filename::String)
+    if endswith(filename,".mps")
+        WriteFile(m.inner, 3, filename)
+    else
+        error("Only MPS output supported")
+    end
+end
 
 updatemodel(m::CoinMPSolver) = nothing
 
