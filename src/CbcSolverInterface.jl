@@ -1,5 +1,13 @@
+module CbcMathProgSolverInterface
 
-export CoinMPSolver,
+using Cbc.CoinMPInterface
+
+require(joinpath(Pkg.dir("MathProgBase"),"src","MathProgSolverInterface.jl"))
+importall MathProgSolverInterface
+
+
+export CbcMathProgSolver,
+    CbcSolver,
     model,
     loadproblem,
     writeproblem,
@@ -17,23 +25,31 @@ export CoinMPSolver,
     getrawsolver
 
 
-type CoinMPSolver <: LinprogSolver
+type CbcMathProgSolver <: MathProgSolver
     inner::CoinProblem
 end
 
-function model(;options...)
+immutable CbcSolver <: SolverNameAndOptions
+    options 
+end
+CbcSolver(;kwargs...) = CbcSolver(kwargs)
+
+
+function CbcMathProgSolver(;options...)
     c = CoinProblem()
     setOption(c, "LogLevel", 0)
     for (optname, optval) in options
         setOption(c, string(optname), optval)
     end
-    return CoinMPSolver(c)
+    return CbcMathProgSolver(c)
 end
 
-loadproblem(m::CoinMPSolver, A, collb, colub, obj, rowlb, rowub) =
+model(s::CbcSolver) = CbcMathProgSolver(;s.options...)
+
+loadproblem(m::CbcMathProgSolver, A, collb, colub, obj, rowlb, rowub) =
     LoadMatrix(m.inner, 1, 0.0, obj, collb, colub, rowlb, rowub, A)
 
-function writeproblem(m::CoinMPSolver, filename::String)
+function writeproblem(m::CbcMathProgSolver, filename::String)
     if endswith(filename,".mps")
         WriteFile(m.inner, 3, filename)
     else
@@ -41,20 +57,20 @@ function writeproblem(m::CoinMPSolver, filename::String)
     end
 end
 
-updatemodel(m::CoinMPSolver) = nothing
+updatemodel(m::CbcMathProgSolver) = nothing
 
-function setsense(m::CoinMPSolver,sense)
+function setsense(m::CbcMathProgSolver,sense)
     if sense != :Min
         error("Only minimization sense currently supported")
     end
 end
 
-getsense(m::CoinMPSolver) = :Min
+getsense(m::CbcMathProgSolver) = :Min
 
-numvar(m::CoinMPSolver) = GetColCount(m.inner)
-numconstr(m::CoinMPSolver) = GetRowCount(m.inner)
+numvar(m::CbcMathProgSolver) = GetColCount(m.inner)
+numconstr(m::CbcMathProgSolver) = GetRowCount(m.inner)
 
-function setvartype(m::CoinMPSolver,vartype)
+function setvartype(m::CbcMathProgSolver,vartype)
     ncol = numvar(m)
     @assert length(vartype) == ncol
     coltype = Array(Uint8,ncol)
@@ -65,9 +81,9 @@ function setvartype(m::CoinMPSolver,vartype)
     LoadInteger(m.inner,coltype)
 end
 
-optimize(m::CoinMPSolver) = OptimizeProblem(m.inner)
+optimize(m::CbcMathProgSolver) = OptimizeProblem(m.inner)
 
-function status(m::CoinMPSolver)
+function status(m::CbcMathProgSolver)
     stat = GetSolutionText(m.inner)
     # CoinMP status reporting is faulty,
     # add logic from CbcModel.cpp.
@@ -91,10 +107,12 @@ function status(m::CoinMPSolver)
     end
 end
 
-getobjval(m::CoinMPSolver) = GetObjectValue(m.inner)
+getobjval(m::CbcMathProgSolver) = GetObjectValue(m.inner)
 
-getobjbound(m::CoinMPSolver) = GetMipBestBound(m.inner)
+getobjbound(m::CbcMathProgSolver) = GetMipBestBound(m.inner)
 
-getsolution(m::CoinMPSolver) = GetSolutionValues(m.inner)
+getsolution(m::CbcMathProgSolver) = GetSolutionValues(m.inner)
 
-getrawsolver(m::CoinMPSolver) = m.inner
+getrawsolver(m::CbcMathProgSolver) = m.inner
+
+end
