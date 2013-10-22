@@ -9,15 +9,15 @@ importall MathProgSolverInterface
 export CbcMathProgModel,
     CbcSolver,
     model,
-    loadproblem,
+    loadproblem!,
     writeproblem,
-    updatemodel,
-    setsense,
+    updatemodel!,
+    setsense!,
     getsense,
     numvar,
     numconstr,
-    setvartype,
-    optimize,
+    setvartype!,
+    optimize!,
     status,
     getobjval,
     getobjbound,
@@ -27,6 +27,7 @@ export CbcMathProgModel,
 
 type CbcMathProgModel <: AbstractMathProgModel
     inner::CoinProblem
+    sense
 end
 
 immutable CbcSolver <: AbstractMathProgSolver
@@ -41,13 +42,20 @@ function CbcMathProgModel(;options...)
     for (optname, optval) in options
         setOption(c, string(optname), optval)
     end
-    return CbcMathProgModel(c)
+    return CbcMathProgModel(c,:Min)
 end
 
 model(s::CbcSolver) = CbcMathProgModel(;s.options...)
 
-loadproblem(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub) =
-    LoadMatrix(m.inner, 1, 0.0, obj, collb, colub, rowlb, rowub, A)
+function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
+    @assert sense == :Min || sense == :Max
+    dir = 1
+    if sense == :Max
+        dir = -1
+    end
+    m.sense = sense
+    LoadMatrix(m.inner, dir, 0.0, obj, collb, colub, rowlb, rowub, A)
+end
 
 function writeproblem(m::CbcMathProgModel, filename::String)
     if endswith(filename,".mps")
@@ -60,17 +68,17 @@ end
 updatemodel(m::CbcMathProgModel) = nothing
 
 function setsense(m::CbcMathProgModel,sense)
-    if sense != :Min
-        error("Only minimization sense currently supported")
+    if sense != m.sense
+        error("CoinMP interface does not permit modifying the problem sense")
     end
 end
 
-getsense(m::CbcMathProgModel) = :Min
+getsense(m::CbcMathProgModel) = m.sense
 
 numvar(m::CbcMathProgModel) = GetColCount(m.inner)
 numconstr(m::CbcMathProgModel) = GetRowCount(m.inner)
 
-function setvartype(m::CbcMathProgModel,vartype)
+function setvartype!(m::CbcMathProgModel,vartype)
     ncol = numvar(m)
     @assert length(vartype) == ncol
     coltype = Array(Uint8,ncol)
@@ -81,7 +89,7 @@ function setvartype(m::CbcMathProgModel,vartype)
     LoadInteger(m.inner,coltype)
 end
 
-optimize(m::CbcMathProgModel) = OptimizeProblem(m.inner)
+optimize!(m::CbcMathProgModel) = OptimizeProblem(m.inner)
 
 function status(m::CbcMathProgModel)
     stat = GetSolutionText(m.inner)
