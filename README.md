@@ -16,9 +16,9 @@ The supported platforms are Linux, OS X, and Windows. Binaries are provided for 
 Cbc provides a solver object that can be passed to ``mixintprog`` in MathProgBase (and used to create instances of the solver-independent ``AbstractMathProgModel`` type):
 
 ```julia
-    using Clp
+    using Cbc
     using MathProgBase
-    mixintprog(..., ClpSolver(Option1=value1,Option2=value2,...))
+    mixintprog(..., CbcSolver(Option1=value1,Option2=value2,...))
 ```
 
 see the MathProgBase documentation for further information.
