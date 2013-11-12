@@ -39,6 +39,7 @@ provides(SimpleBuild,
             `cat $patchdir/CoinMP-makefile.patch` |> `patch -p1`
             `cat $patchdir/CoinMP-strcmp.patch` |> `patch -p1`
             `cat $patchdir/CoinMP-loglevel.patch` |> `patch -p1`
+            `cat $patchdir/CoinMP-emptyproblem.patch` |> `patch -p1`
             `cat $patchdir/Clp-interface.patch` |> `patch -p0`
             `./configure --prefix=$prefix`
             `make install`
