@@ -1,8 +1,7 @@
 
 module Cbc
 
-using BinDeps
-@BinDeps.load_dependencies
+include("../deps/deps.jl")
 
 
 

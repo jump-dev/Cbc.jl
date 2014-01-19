@@ -46,4 +46,4 @@ provides(SimpleBuild,
         end
     end),[libclp,libcoinmp], os = :Unix)
 
-@BinDeps.install
+@BinDeps.install [:libclp => :libclp, :libcoinmp => :libcoinmp]
