@@ -39,7 +39,7 @@ export CONTINUOUS, INTEGER,
     WriteFile,
     OpenLogFile,
     CloseLogFile
-    
+
 # helper macros/functions
 
 macro coin_ccall(func, args...)
@@ -61,7 +61,7 @@ macro coin_checkedccall(func, args...)
         end
     end
 end
-   
+
 
 type CoinProblem
     p::Ptr{Void}
@@ -175,7 +175,7 @@ function GetInfinity()
 end
 
 function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
-    objective_offset::Float64, objective_coeffs::VecOrNothing, 
+    objective_offset::Float64, objective_coeffs::VecOrNothing,
     col_lb::VecOrNothing, col_ub::VecOrNothing,
     row_lb::VecOrNothing, row_ub::VecOrNothing,
     constraint_matrix::AbstractMatrix)
@@ -186,8 +186,8 @@ function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
 
     @coin_checkedccall LoadMatrix (Ptr{Void}, Int32, Int32, Int32, Int32, Int32,
         Float64, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Uint8}, Ptr{Float64},
-        Ptr{Float64}, Ptr{Int32}, Ptr{Int32}, Ptr{Int32}, 
-        Ptr{Float64}) prob.p ncol nrow nnz(mat) 0 objective_sense objective_offset vec_or_null(Float64, objective_coeffs, ncol) vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) C_NULL vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow) mat.colptr-int32(1) C_NULL vec_or_null(Int32, mat.rowval-int32(1),nnz(mat)) vec_or_null(Float64, mat.nzval, nnz(mat))
+        Ptr{Float64}, Ptr{Int32}, Ptr{Int32}, Ptr{Int32},
+        Ptr{Float64}) prob.p ncol nrow nfilled(mat) 0 objective_sense objective_offset vec_or_null(Float64, objective_coeffs, ncol) vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) C_NULL vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow) mat.colptr-int32(1) C_NULL vec_or_null(Int32, mat.rowval-int32(1),nfilled(mat)) vec_or_null(Float64, mat.nzval, nfilled(mat))
 end
 
 # TODO: CoinLoadNames
@@ -369,7 +369,7 @@ end
 
 # TODO: CoinGetOptionGroup
 
-# 1 -- 0/1, 2 -- INT, 4 -- REAL, 
+# 1 -- 0/1, 2 -- INT, 4 -- REAL,
 function GetOptionType(prob::CoinProblem, OptionID::Integer)
     check_problem(prob)
     @coin_ccall GetOptionType Int32 (Ptr{Void},Int32) prob.p OptionID
