@@ -187,7 +187,7 @@ function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
     @coin_checkedccall LoadMatrix (Ptr{Void}, Int32, Int32, Int32, Int32, Int32,
         Float64, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Uint8}, Ptr{Float64},
         Ptr{Float64}, Ptr{Int32}, Ptr{Int32}, Ptr{Int32},
-        Ptr{Float64}) prob.p ncol nrow nfilled(mat) 0 objective_sense objective_offset vec_or_null(Float64, objective_coeffs, ncol) vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) C_NULL vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow) mat.colptr-int32(1) C_NULL vec_or_null(Int32, mat.rowval-int32(1),nfilled(mat)) vec_or_null(Float64, mat.nzval, nfilled(mat))
+        Ptr{Float64}) prob.p ncol nrow nnz(mat) 0 objective_sense objective_offset vec_or_null(Float64, objective_coeffs, ncol) vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) C_NULL vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow) mat.colptr-int32(1) C_NULL vec_or_null(Int32, mat.rowval-int32(1),nnz(mat)) vec_or_null(Float64, mat.nzval, nnz(mat))
 end
 
 # TODO: CoinLoadNames
