@@ -14,7 +14,7 @@ end
     libcoinmp = library_dependency("libcoinmp",aliases=["CoinMP"])
 end
 
-coinmpname = "CoinMP-1.7.0"
+coinmpname = "CoinMP-1.7.6"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname.tgz"),
     [libclp,libcoinmp], os = :Unix)
@@ -36,12 +36,8 @@ provides(SimpleBuild,
         GetSources(libclp)
         @build_steps begin
             ChangeDirectory(srcdir)
-            `cat $patchdir/CoinMP-makefile.patch` |> `patch -N -p1`
-            `cat $patchdir/CoinMP-strcmp.patch` |> `patch -N -p1`
-            `cat $patchdir/CoinMP-loglevel.patch` |> `patch -N -p1`
             `cat $patchdir/CoinMP-emptyproblem.patch` |> `patch -N -p1`
-            `cat $patchdir/Clp-interface.patch` |> `patch -N -p0`
-            `./configure --prefix=$prefix`
+            `./configure --prefix=$prefix --enable-dependency-linking`
             `make install`
         end
     end),[libclp,libcoinmp], os = :Unix)

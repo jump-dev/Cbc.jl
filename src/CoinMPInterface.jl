@@ -39,7 +39,7 @@ export CONTINUOUS, INTEGER,
     WriteFile,
     OpenLogFile,
     CloseLogFile
-    
+
 # helper macros/functions
 
 macro coin_ccall(func, args...)
@@ -61,7 +61,7 @@ macro coin_checkedccall(func, args...)
         end
     end
 end
-   
+
 
 type CoinProblem
     p::Ptr{Void}
@@ -178,7 +178,7 @@ end
 nfilled(m) = int(m.colptr[end]-1)
 
 function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
-    objective_offset::Float64, objective_coeffs::VecOrNothing, 
+    objective_offset::Float64, objective_coeffs::VecOrNothing,
     col_lb::VecOrNothing, col_ub::VecOrNothing,
     row_lb::VecOrNothing, row_ub::VecOrNothing,
     constraint_matrix::AbstractMatrix)
@@ -372,7 +372,7 @@ end
 
 # TODO: CoinGetOptionGroup
 
-# 1 -- 0/1, 2 -- INT, 4 -- REAL, 
+# 1 -- 0/1, 2 -- INT, 4 -- REAL,
 function GetOptionType(prob::CoinProblem, OptionID::Integer)
     check_problem(prob)
     @coin_ccall GetOptionType Int32 (Ptr{Void},Int32) prob.p OptionID
