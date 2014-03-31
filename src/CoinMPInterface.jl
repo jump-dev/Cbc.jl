@@ -174,6 +174,9 @@ function GetInfinity()
     @coin_ccall GetInfinity Float64 ()
 end
 
+# for compatibility with 0.2
+nfilled(m) = int(m.colptr[end]-1)
+
 function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
     objective_offset::Float64, objective_coeffs::VecOrNothing, 
     col_lb::VecOrNothing, col_ub::VecOrNothing,
@@ -187,7 +190,7 @@ function LoadMatrix(prob::CoinProblem, objective_sense::Integer,
     @coin_checkedccall LoadMatrix (Ptr{Void}, Int32, Int32, Int32, Int32, Int32,
         Float64, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Uint8}, Ptr{Float64},
         Ptr{Float64}, Ptr{Int32}, Ptr{Int32}, Ptr{Int32}, 
-        Ptr{Float64}) prob.p ncol nrow nnz(mat) 0 objective_sense objective_offset vec_or_null(Float64, objective_coeffs, ncol) vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) C_NULL vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow) mat.colptr-int32(1) C_NULL vec_or_null(Int32, mat.rowval-int32(1),nnz(mat)) vec_or_null(Float64, mat.nzval, nnz(mat))
+        Ptr{Float64}) prob.p ncol nrow nfilled(mat) 0 objective_sense objective_offset vec_or_null(Float64, objective_coeffs, ncol) vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) C_NULL vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow) mat.colptr.-int32(1) C_NULL vec_or_null(Int32, mat.rowval.-int32(1),nfilled(mat)) vec_or_null(Float64, mat.nzval, nfilled(mat))
 end
 
 # TODO: CoinLoadNames
@@ -210,7 +213,7 @@ function LoadPriority(prob::CoinProblem,
     # PriorBranch argument is ignored?
     check_problem(prob)
     len = length(PriorIndex)
-    PriorIndex = PriorIndex - int32(1) # input is 1-based
+    PriorIndex = PriorIndex .- int32(1) # input is 1-based
     if len != length(PriorValues)
         error("All input vectors must be same length")
     end
