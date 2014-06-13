@@ -1,6 +1,6 @@
 module CbcMathProgSolverInterface
 
-using Cbc.CoinMPInterface
+using Cbc.CbcCInterface
 
 require(joinpath(Pkg.dir("MathProgBase"),"src","MathProgSolverInterface.jl"))
 importall MathProgSolverInterface
@@ -26,8 +26,7 @@ export CbcMathProgModel,
 
 
 type CbcMathProgModel <: AbstractMathProgModel
-    inner::CoinProblem
-    sense
+    inner::CbcModel
 end
 
 immutable CbcSolver <: AbstractMathProgSolver
@@ -37,29 +36,24 @@ CbcSolver(;kwargs...) = CbcSolver(kwargs)
 
 
 function CbcMathProgModel(;options...)
-    c = CoinProblem()
-    setOption(c, "LogLevel", 0)
+    c = CbcModel()
+    setParameter(c, "log", "0")
     for (optname, optval) in options
-        setOption(c, string(optname), optval)
+        setParameter(c, string(optname), string(optval))
     end
-    return CbcMathProgModel(c,:Min)
+    return CbcMathProgModel(c)
 end
 
 model(s::CbcSolver) = CbcMathProgModel(;s.options...)
 
 function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
-    @assert sense == :Min || sense == :Max
-    dir = 1
-    if sense == :Max
-        dir = -1
-    end
-    m.sense = sense
-    LoadMatrix(m.inner, dir, 0.0, obj, collb, colub, rowlb, rowub, A)
+    loadProblem(m.inner, A, collb, colub, obj, rowlb, rowub)
+    setsense!(m, sense)
 end
 
 function writeproblem(m::CbcMathProgModel, filename::String)
     if endswith(filename,".mps")
-        WriteFile(m.inner, 3, filename)
+        writeMps(m.inner, filename)
     else
         error("Only MPS output supported")
     end
@@ -67,60 +61,68 @@ end
 
 updatemodel(m::CbcMathProgModel) = nothing
 
-function setsense(m::CbcMathProgModel,sense)
-    if sense != m.sense
-        error("CoinMP interface does not permit modifying the problem sense")
+function setsense!(m::CbcMathProgModel,sense)
+    @assert sense == :Min || sense == :Max
+    if sense == :Min
+       setObjSense(m.inner, 1)
+    else
+       setObjSense(m.inner, -1)
     end
 end
 
-getsense(m::CbcMathProgModel) = m.sense
+function getsense(m::CbcMathProgModel)
+    s = getObjSense(m.inner)
+    if s == 1
+        return :Min
+    elseif s == -1
+        return :Max
+    else
+        error("Internal error: Unknown sense $s")
+    end
+end
 
-numvar(m::CbcMathProgModel) = GetColCount(m.inner)
-numconstr(m::CbcMathProgModel) = GetRowCount(m.inner)
+numvar(m::CbcMathProgModel) = getNumCols(m.inner)
+numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
 
 function setvartype!(m::CbcMathProgModel,vartype)
     ncol = numvar(m)
     @assert length(vartype) == ncol
-    coltype = Array(Uint8,ncol)
     for i in 1:ncol
         @assert vartype[i] == 'I' || vartype[i] == 'C'
-        coltype[i] = vartype[i]
+        if vartype[i] == 'I'
+            setInteger(m.inner, i-1)
+        else
+            setContinuous(m.inner, i-1)
+        end
     end
-    LoadInteger(m.inner,coltype)
 end
 
-optimize!(m::CbcMathProgModel) = OptimizeProblem(m.inner)
+optimize!(m::CbcMathProgModel) = solve(m.inner)
 
 function status(m::CbcMathProgModel)
-    stat = GetSolutionText(m.inner)
-    # CoinMP status reporting is faulty,
-    # add logic from CbcModel.cpp.
-    objval = GetObjectValue(m.inner)
-    if stat == "Optimal solution found" 
-        if objval < 1e30
-            return :Optimal
-        else
-            return :Infeasible
-        end
-    elseif stat == "Problem primal infeasible"
+    if isProvenOptimal(m.inner)
+        return :Optimal
+    elseif isProvenInfeasible(m.inner)
         return :Infeasible
-    elseif stat == "Problem dual infeasible" # what does this mean for MIP??
-        return :Unbounded
-    elseif stat == "Stopped on iterations" || stat == "Stopped by user"
+    elseif isContinuousUnbounded(m.inner)
+        return :Unbounded # is this correct?
+    elseif isNodeLimitReached(m.inner) || isSecondsLimitReached(m.inner) || isSolutionLimitReached(m.inner)
         return :UserLimit
-    elseif stat == "Stopped due to errors"
+    elseif isAbandoned(m.inner)
         return :Error
     else
-        error("Internal library error")
+        error("Internal error: Unrecognized solution status")
     end
 end
 
-getobjval(m::CbcMathProgModel) = GetObjectValue(m.inner)
+getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
 
-getobjbound(m::CbcMathProgModel) = GetMipBestBound(m.inner)
+getobjbound(m::CbcMathProgModel) = getBestPossibleObjValue(m.inner)
 
-getsolution(m::CbcMathProgModel) = GetSolutionValues(m.inner)
+getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 
 getrawsolver(m::CbcMathProgModel) = m.inner
+
+setwarmstart!(m::CbcMathProgModel, v) = setInitialSolution(m.inner, v)
 
 end

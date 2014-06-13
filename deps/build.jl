@@ -4,27 +4,27 @@ using BinDeps
 
 @unix_only begin
     libclp = library_dependency("libclp",aliases=["libClp"])
-    libcoinmp = library_dependency("libcoinmp",aliases=["libCoinMP"])
+    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"])
 end
 @windows_only begin
     if Int != Int32
         error("Win64 platform is not yet supported by this package")
     end
     libclp = library_dependency("libclp",aliases=["CoinMP"])
-    libcoinmp = library_dependency("libcoinmp",aliases=["CoinMP"])
+    libcbcsolver = library_dependency("libcoinmp",aliases=["CoinMP"])
 end
 
 coinmpname = "CoinMP-1.7.6"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname.tgz"),
-    [libclp,libcoinmp], os = :Unix)
+    [libclp,libcbcsolver], os = :Unix)
 
 provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia_20130903.tar.gz"),
-    [libclp,libcoinmp], os = :Windows)
+    [libclp,libcbcsolver], os = :Windows)
 
 @osx_only begin
     using Homebrew
-    provides( Homebrew.HB, "coinmp", [libclp, libcoinmp], os = :Darwin )
+    provides( Homebrew.HB, "coinmp", [libclp, libcbcsolver], os = :Darwin )
 end
 
 prefix=joinpath(BinDeps.depsdir(libclp),"usr")
@@ -40,6 +40,6 @@ provides(SimpleBuild,
             `./configure --prefix=$prefix --enable-dependency-linking`
             `make install`
         end
-    end),[libclp,libcoinmp], os = :Unix)
+    end),[libclp,libcbcsolver], os = :Unix)
 
-@BinDeps.install [:libclp => :libclp, :libcoinmp => :libcoinmp]
+@BinDeps.install [:libclp => :libclp, :libcbcsolver => :libcbcsolver]

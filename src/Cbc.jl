@@ -9,7 +9,7 @@ end
 
 
 
-include("CoinMPInterface.jl")
+include("CbcCInterface.jl")
 include("CbcSolverInterface.jl")
 
 using Cbc.CbcMathProgSolverInterface
