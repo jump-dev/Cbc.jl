@@ -115,6 +115,13 @@ function status(m::CbcMathProgModel)
     end
 end
 
+function getconstrmatrix(m::CbcMathProgModel)
+    starts = getVectorStarts(m.inner)
+    rowval = getIndices(m.inner)
+    nzval = getElements(m.inner)
+    return SparseMatrixCSC(numconstr(m), numvar(m), starts+1, rowval+1, nzval)
+end
+
 getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
 
 getobjbound(m::CbcMathProgModel) = getBestPossibleObjValue(m.inner)
@@ -123,6 +130,29 @@ getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 
 getrawsolver(m::CbcMathProgModel) = m.inner
 
-setwarmstart!(m::CbcMathProgModel, v) = setInitialSolution(m.inner, v)
+function setwarmstart!(m::CbcMathProgModel, v)
+    # ignore if not feasible
+    @assert length(v) == numvar(m)
+    l = getColLower(m.inner)
+    u = getColUpper(m.inner)
+    for i in 1:length(v)
+        if !(l[i] - 1e-6 <= v[i] <= u[i] + 1e-6)
+            return
+        end
+        if isInteger(m.inner, i-1) && !isinteger(l[i])
+            return
+        end
+    end
+    lb = getRowLower(m.inner)
+    ub = getRowUpper(m.inner)
+    A = getconstrmatrix(m)
+    rowval = A*v
+    for i in 1:numconstr(m)
+        if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)
+            return
+        end
+    end
+    setInitialSolution(m.inner, v)
+end
 
 end
