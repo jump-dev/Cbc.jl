@@ -87,6 +87,8 @@ function setvartype!(m::CbcMathProgModel,vartype)
             coltype[i] = 'I'
         elseif vartype[i] == :Cont
             coltype[i] = 'C'
+        elseif vartype[i] == :Bin
+            coltype[i] = 'B'
         else
             error("Unsupported variable type $(vartype[i]) present")
         end
