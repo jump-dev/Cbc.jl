@@ -78,7 +78,7 @@ getsense(m::CbcMathProgModel) = m.sense
 numvar(m::CbcMathProgModel) = GetColCount(m.inner)
 numconstr(m::CbcMathProgModel) = GetRowCount(m.inner)
 
-function setvartype!(m::CbcMathProgModel,vartype)
+function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
     ncol = numvar(m)
     @assert length(vartype) == ncol
     coltype = Array(Uint8,ncol)
