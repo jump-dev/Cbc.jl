@@ -83,8 +83,13 @@ function setvartype!(m::CbcMathProgModel,vartype)
     @assert length(vartype) == ncol
     coltype = Array(Uint8,ncol)
     for i in 1:ncol
-        @assert vartype[i] == 'I' || vartype[i] == 'C'
-        coltype[i] = vartype[i]
+        if vartype[i] == :Int
+            coltype[i] = 'I'
+        elseif vartype[i] == :Cont
+            coltype[i] = 'C'
+        else
+            error("Unsupported variable type $(vartype[i]) present")
+        end
     end
     LoadInteger(m.inner,coltype)
 end
