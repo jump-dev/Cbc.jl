@@ -2,8 +2,7 @@ module CbcMathProgSolverInterface
 
 using Cbc.CoinMPInterface
 
-require(joinpath(Pkg.dir("MathProgBase"),"src","MathProgSolverInterface.jl"))
-importall MathProgSolverInterface
+importall MathProgBase.SolverInterface
 
 
 export CbcMathProgModel,
