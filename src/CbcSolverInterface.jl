@@ -2,8 +2,7 @@ module CbcMathProgSolverInterface
 
 using Cbc.CoinMPInterface
 
-require(joinpath(Pkg.dir("MathProgBase"),"src","MathProgSolverInterface.jl"))
-importall MathProgSolverInterface
+importall MathProgBase.SolverInterface
 
 
 export CbcMathProgModel,
@@ -78,13 +77,20 @@ getsense(m::CbcMathProgModel) = m.sense
 numvar(m::CbcMathProgModel) = GetColCount(m.inner)
 numconstr(m::CbcMathProgModel) = GetRowCount(m.inner)
 
-function setvartype!(m::CbcMathProgModel,vartype)
+function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
     ncol = numvar(m)
     @assert length(vartype) == ncol
     coltype = Array(Uint8,ncol)
     for i in 1:ncol
-        @assert vartype[i] == 'I' || vartype[i] == 'C'
-        coltype[i] = vartype[i]
+        if vartype[i] == :Int
+            coltype[i] = 'I'
+        elseif vartype[i] == :Cont
+            coltype[i] = 'C'
+        elseif vartype[i] == :Bin
+            coltype[i] = 'B'
+        else
+            error("Unsupported variable type $(vartype[i]) present")
+        end
     end
     LoadInteger(m.inner,coltype)
 end
