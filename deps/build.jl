@@ -7,20 +7,17 @@ using BinDeps
     libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"])
 end
 @windows_only begin
-    if Int != Int32
-        error("Win64 platform is not yet supported by this package")
-    end
-    libclp = library_dependency("libclp",aliases=["CoinMP"])
-    libcbcsolver = library_dependency("libcoinmp",aliases=["CoinMP"])
+    using WinRPM
+    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.1")
+    libclp = library_dependency("libclp",aliases=["libClp-1"])
+    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"])
+    provides(WinRPM.RPM, "coin-or-Cbc", [libclp,libcbcsolver], os = :Windows)
 end
 
 coinmpname = "CoinMP-1.7.6"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname.tgz"),
     [libclp,libcbcsolver], os = :Unix)
-
-provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia_20130903.tar.gz"),
-    [libclp,libcbcsolver], os = :Windows)
 
 @osx_only begin
     using Homebrew
