@@ -2,8 +2,7 @@ module CbcMathProgSolverInterface
 
 using Cbc.CbcCInterface
 
-require(joinpath(Pkg.dir("MathProgBase"),"src","MathProgSolverInterface.jl"))
-importall MathProgSolverInterface
+importall MathProgBase.SolverInterface
 
 
 export CbcMathProgModel,
@@ -84,15 +83,19 @@ end
 numvar(m::CbcMathProgModel) = getNumCols(m.inner)
 numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
 
-function setvartype!(m::CbcMathProgModel,vartype)
+function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
     ncol = numvar(m)
     @assert length(vartype) == ncol
     for i in 1:ncol
-        @assert vartype[i] == 'I' || vartype[i] == 'C'
-        if vartype[i] == 'I'
+        if vartype[i] == :Int
             setInteger(m.inner, i-1)
-        else
+        elseif vartype[i] == :Cont
             setContinuous(m.inner, i-1)
+        elseif vartype[i] == :Bin
+            setInteger(m.inner, i-1)
+            # TODO: check variable bounds match
+        else
+            error("Unrecognized variable type $(vartype[i])")
         end
     end
 end
