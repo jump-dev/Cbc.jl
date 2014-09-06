@@ -26,6 +26,7 @@ export CbcMathProgModel,
 
 type CbcMathProgModel <: AbstractMathProgModel
     inner::CbcModel
+    binaries::Vector{Int} # indices of binary variables
 end
 
 immutable CbcSolver <: AbstractMathProgSolver
@@ -45,7 +46,7 @@ function CbcMathProgModel(;options...)
             setParameter(c, string(optname), string(optval))
         end
     end
-    return CbcMathProgModel(c)
+    return CbcMathProgModel(c, Int[])
 end
 
 model(s::CbcSolver) = CbcMathProgModel(;s.options...)
@@ -91,6 +92,7 @@ numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
 function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
     ncol = numvar(m)
     @assert length(vartype) == ncol
+    m.binaries = Int[]
     for i in 1:ncol
         if vartype[i] == :Int
             setInteger(m.inner, i-1)
@@ -98,14 +100,23 @@ function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
             setContinuous(m.inner, i-1)
         elseif vartype[i] == :Bin
             setInteger(m.inner, i-1)
-            # TODO: check variable bounds match
+            push!(m.binaries, i)
         else
             error("Unrecognized variable type $(vartype[i])")
         end
     end
 end
 
-optimize!(m::CbcMathProgModel) = solve(m.inner)
+function optimize!(m::CbcMathProgModel)
+    lb = getColLower(m.inner)
+    ub = getColUpper(m.inner)
+    # tighten bounds on binaries
+    for i in m.binaries
+        setColLower(m.inner, i-1, max(lb[i],0.0))
+        setColUpper(m.inner, i-1, min(ub[i],1.0))
+    end
+    solve(m.inner)
+end
 
 function status(m::CbcMathProgModel)
     if isProvenOptimal(m.inner)
