@@ -26,12 +26,14 @@ see the MathProgBase documentation for further information.
 Options are solver-dependent, and unfortunately not well documented.
 The following options are likely to be the most useful:
 
-* ``MipMaxSeconds`` -- Solution timeout limit. (Must be a ``Float64``)
-* ``LogLevel`` -- Set to 1 to enable solution output.
-* ``MipMaxSolutions`` -- Terminate after this many feasible solutions have been found.
-* ``MipMaxNodes`` -- Terminate after this many branch-and-bound nodes have been evaluated.
-* ``MipAllowableGap`` -- Terminate after optimality gap is less than this value (on an absolute scale).
-* ``MipFractionalGap`` -- Terminate after optimality gap is smaller than this relative fraction.
+* ``seconds`` -- Solution timeout limit. (Must be a ``Float64``)
+* ``logLevel`` -- Set to 1 to enable solution output.
+* ``maxSolutions`` -- Terminate after this many feasible solutions have been found.
+* ``maxNodes`` -- Terminate after this many branch-and-bound nodes have been evaluated.
+* ``allowableGap`` -- Terminate after optimality gap is less than this value (on an absolute scale).
+* ``ratioGap`` -- Terminate after optimality gap is smaller than this relative fraction.
+
+The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt.
 
 ### Using the C interface
 

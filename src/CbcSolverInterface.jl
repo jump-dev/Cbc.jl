@@ -37,8 +37,13 @@ CbcSolver(;kwargs...) = CbcSolver(kwargs)
 function CbcMathProgModel(;options...)
     c = CbcModel()
     setParameter(c, "log", "0")
+    old_parameters = [:MipMaxSeconds, :LogLevel, :MipMaxSolutions, :MipMaxNodes, :MipAllowableGap, :MipFractionalGap]
     for (optname, optval) in options
-        setParameter(c, string(optname), string(optval))
+        if optname in old_parameters
+            warn("Option $optname is no longer recognized. See https://github.com/JuliaOpt/Cbc.jl for renamed list of options.")
+        else
+            setParameter(c, string(optname), string(optval))
+        end
     end
     return CbcMathProgModel(c)
 end
