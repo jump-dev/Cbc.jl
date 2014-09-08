@@ -19,6 +19,7 @@ end
 @windows_only begin
     using WinRPM
     push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.1")
+    WinRPM.update()
     libclp = library_dependency("libclp",aliases=["libClp-1"])
     libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"], validate=validate)
     provides(WinRPM.RPM, "coin-or-Cbc", [libclp,libcbcsolver], os = :Windows)
