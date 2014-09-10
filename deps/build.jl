@@ -32,7 +32,7 @@ provides(Sources, URI("http://www.coin-or.org/download/source/Cbc/$cbcname.tgz")
 
 @osx_only begin
     using Homebrew
-    provides( Homebrew.HB, "coinmp", [libclp, libcbcsolver], os = :Darwin )
+    provides( Homebrew.HB, "cbc", [libclp, libcbcsolver], os = :Darwin )
 end
 
 prefix=joinpath(BinDeps.depsdir(libclp),"usr")
