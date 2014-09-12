@@ -44,7 +44,7 @@ provides(SimpleBuild,
         GetSources(libclp)
         @build_steps begin
             ChangeDirectory(srcdir)
-            `./configure --prefix=$prefix --enable-dependency-linking --without-blas --without-lapack`
+            `./configure --prefix=$prefix --enable-dependency-linking --without-blas --without-lapack --enable-cbc-parallel`
             `make install`
         end
     end),[libclp,libcbcsolver], os = :Unix)

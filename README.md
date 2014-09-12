@@ -32,6 +32,7 @@ The following options are likely to be the most useful:
 * ``maxNodes`` -- Terminate after this many branch-and-bound nodes have been evaluated.
 * ``allowableGap`` -- Terminate after optimality gap is less than this value (on an absolute scale).
 * ``ratioGap`` -- Terminate after optimality gap is smaller than this relative fraction.
+* ``threads`` -- Set the number of threads to use for parallel branch & bound
 
 The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt.
 
