@@ -2,44 +2,51 @@ using BinDeps
 
 @BinDeps.setup
 
+function validate(name,handle)
+    try
+        # Pre 2.8.12 doesn't have this defined
+        p = dlsym(handle, :Cbc_setInitialSolution)
+        return p != C_NULL
+    catch
+        return false
+    end
+end
+
 @unix_only begin
     libclp = library_dependency("libclp",aliases=["libClp"])
-    libcoinmp = library_dependency("libcoinmp",aliases=["libCoinMP"])
+    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"], validate=validate)
 end
 @windows_only begin
-    if Int != Int32
-        error("Win64 platform is not yet supported by this package")
-    end
-    libclp = library_dependency("libclp",aliases=["CoinMP"])
-    libcoinmp = library_dependency("libcoinmp",aliases=["CoinMP"])
+    using WinRPM
+    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.1")
+    WinRPM.update()
+    libclp = library_dependency("libclp",aliases=["libClp-1"])
+    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"], validate=validate)
+    provides(WinRPM.RPM, "coin-or-Cbc", [libclp,libcbcsolver], os = :Windows)
 end
 
-coinmpname = "CoinMP-1.7.6"
+cbcname = "Cbc-2.8.12"
 
-provides(Sources, URI("http://www.coin-or.org/download/source/CoinMP/$coinmpname.tgz"),
-    [libclp,libcoinmp], os = :Unix)
-
-provides(Binaries, URI("http://www.mit.edu/~mlubin/CoinMP_julia_20130903.tar.gz"),
-    [libclp,libcoinmp], os = :Windows)
+provides(Sources, URI("http://www.coin-or.org/download/source/Cbc/$cbcname.tgz"),
+    [libclp,libcbcsolver], os = :Unix)
 
 @osx_only begin
     using Homebrew
-    provides( Homebrew.HB, "coinmp", [libclp, libcoinmp], os = :Darwin )
+    provides( Homebrew.HB, "cbc", [libclp, libcbcsolver], os = :Darwin )
 end
 
 prefix=joinpath(BinDeps.depsdir(libclp),"usr")
 patchdir=BinDeps.depsdir(libclp)
-srcdir = joinpath(BinDeps.depsdir(libclp),"src",coinmpname) 
+srcdir = joinpath(BinDeps.depsdir(libclp),"src",cbcname)
 
 provides(SimpleBuild,
     (@build_steps begin
         GetSources(libclp)
         @build_steps begin
             ChangeDirectory(srcdir)
-            `cat $patchdir/CoinMP-emptyproblem.patch` |> `patch -N -p1`
-            `./configure --prefix=$prefix --enable-dependency-linking`
+            `./configure --prefix=$prefix --enable-dependency-linking --without-blas --without-lapack --enable-cbc-parallel`
             `make install`
         end
-    end),[libclp,libcoinmp], os = :Unix)
+    end),[libclp,libcbcsolver], os = :Unix)
 
-@BinDeps.install [:libclp => :libclp, :libcoinmp => :libcoinmp]
+@BinDeps.install [:libclp => :libclp, :libcbcsolver => :libcbcsolver]
