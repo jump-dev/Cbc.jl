@@ -51,7 +51,8 @@ export CbcModel,
     getBestPossibleObjValue,
     getNodecount,
     status,
-    secondaryStatus
+    secondaryStatus,
+    addSOS
 
     
 
@@ -284,6 +285,17 @@ end
 @getproperty Cint getNodeCount
 
 # TODO: printSolution
+
+function addSOS(prob::CbcModel, numRows::Integer, rowStarts::Vector{Cint},
+    colIndices::Vector{Cint}, weights::Vector{Float64}, typ::Integer)
+
+    @cbc_ccall(addSOS,Void,(Ptr{Void}, Cint, Ptr{Cint}, Ptr{Cint},
+                            Ptr{Float64}, Cint),prob.p,numRows,
+                            rowStarts-convert(Cint,1),
+                            colIndices-convert(Cint,1),
+                            weights, typ)
+
+end
 
 # see Cbc_C_Interface.h documentation
 @getproperty Cint status

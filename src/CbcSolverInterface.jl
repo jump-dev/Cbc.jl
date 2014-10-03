@@ -174,4 +174,14 @@ function setwarmstart!(m::CbcMathProgModel, v)
     setInitialSolution(m.inner, v)
 end
 
+function addsos1!(m::CbcMathProgModel, idx, weight::Vector{Float64})
+    idxc = convert(Vector{Cint}, idx)
+    addSOS(m.inner, 1, Cint[1,length(idx)+1], idxc, weight, 1)
+end
+
+function addsos2!(m::CbcMathProgModel, idx, weight::Vector{Float64})
+    idxc = convert(Vector{Cint}, idx)
+    addSOS(m.inner, 1, Cint[1,length(idx)+1], idxc, weight, 2)
+end
+
 end
