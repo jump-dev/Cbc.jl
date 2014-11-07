@@ -61,9 +61,7 @@ export CbcModel,
 macro cbc_ccall(func, args...)
     f = "Cbc_$(func)"
     quote
-        @unix_only ret = ccall(($f,Cbc.libcbcsolver), $(args...))
-        @windows_only ret = ccall(($f,Cbc.libcbcsolver), stdcall, $(args...))
-        ret
+        ccall(($f,Cbc.libcbcsolver), $(args...))
     end
 end
 
