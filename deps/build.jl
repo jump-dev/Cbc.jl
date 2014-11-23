@@ -2,7 +2,16 @@ using BinDeps
 
 @BinDeps.setup
 
-function validate(name,handle)
+function validate_clp(name,handle)
+    try
+        p = dlsym(handle, :Clp_VersionMajor)
+        return p != C_NULL
+    catch
+        return false
+    end
+end
+
+function validate_cbc(name,handle)
     try
         # Pre 2.8.12 doesn't have this defined
         p = dlsym(handle, :Cbc_setInitialSolution)
@@ -13,13 +22,13 @@ function validate(name,handle)
 end
 
 @unix_only begin
-    libclp = library_dependency("libclp",aliases=["libClp"])
-    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"], validate=validate)
+    libclp = library_dependency("libclp",aliases=["libClp"], validate=validate_clp)
+    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"], validate=validate_cbc)
 end
 @windows_only begin
     using WinRPM
-    libclp = library_dependency("libclp",aliases=["libClp-1"])
-    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"], validate=validate)
+    libclp = library_dependency("libclp",aliases=["libClp-1"], validate=validate_clp)
+    libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"], validate=validate_cbc)
     provides(WinRPM.RPM, "Cbc", [libclp,libcbcsolver], os = :Windows)
 end
 
