@@ -150,6 +150,11 @@ getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 getrawsolver(m::CbcMathProgModel) = m.inner
 
 function setwarmstart!(m::CbcMathProgModel, v)
+    if any(isnan, v)
+        Base.warn_once("Ignoring partial starting solution. Cbc requires a feasible value to be specified for all variables.")
+        return
+    end
+
     # ignore if not feasible
     @assert length(v) == numvar(m)
     l = getColLower(m.inner)
