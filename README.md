@@ -34,7 +34,7 @@ The following options are likely to be the most useful:
 * ``ratioGap`` -- Terminate after optimality gap is smaller than this relative fraction.
 * ``threads`` -- Set the number of threads to use for parallel branch & bound
 
-The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt. The [GAMS documentation describes many available options](http://www.gams.com/dd/docs/solvers/cbc.pdf).
+The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt. See also the useful [documentation](http://www.gams.com/dd/docs/solvers/cbc.pdf) prepared by GAMS.
 
 ### Using the C interface
 
