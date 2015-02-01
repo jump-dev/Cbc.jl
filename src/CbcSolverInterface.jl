@@ -15,6 +15,7 @@ export CbcMathProgModel,
     getsense,
     numvar,
     numconstr,
+    getvartype,
     setvartype!,
     optimize!,
     status,
@@ -88,6 +89,20 @@ end
 
 numvar(m::CbcMathProgModel) = getNumCols(m.inner)
 numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
+
+function getvartype(m::CbcMathProgModel)
+    ncol = numvar(m)
+    vartype = fill(:Cont,ncol)
+    for i in 1:ncol
+        if isInteger(m.inner, i-1)
+            vartype[i] = :Int
+        end
+    end
+    for k in m.binaries
+        vartype[k] = :Bin
+    end
+    return vartype
+end
 
 function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
     ncol = numvar(m)
