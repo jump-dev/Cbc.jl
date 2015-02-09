@@ -32,7 +32,7 @@ end
     provides(WinRPM.RPM, "Cbc", [libclp,libcbcsolver], os = :Windows)
 end
 
-cbcname = "Cbc-2.8.12"
+cbcname = "Cbc-2.9.1"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/Cbc/$cbcname.tgz"),
     [libclp,libcbcsolver], os = :Unix)
@@ -54,7 +54,7 @@ provides(SimpleBuild,
         GetSources(libclp)
         @build_steps begin
             ChangeDirectory(srcdir)
-            `./configure --prefix=$prefix --enable-dependency-linking --without-blas --without-lapack --enable-cbc-parallel`
+            `./configure --prefix=$prefix --without-blas --without-lapack --enable-cbc-parallel`
             `make install`
         end
     end),[libclp,libcbcsolver], os = :Unix)
