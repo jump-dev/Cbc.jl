@@ -20,6 +20,7 @@ export CbcMathProgModel,
     optimize!,
     status,
     getobjval,
+    getobjgap,
     getobjbound,
     getsolution,
     getrawsolver
@@ -159,6 +160,12 @@ end
 getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
 
 getobjbound(m::CbcMathProgModel) = getBestPossibleObjValue(m.inner)
+
+function getobjgap(m::CbcMathProgModel)
+    b = getBestPossibleObjValue(m.inner)
+    f = getObjValue(m.inner)
+    return abs(b-f)/abs(f)
+end
 
 getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 
