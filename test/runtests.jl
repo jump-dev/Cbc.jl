@@ -1,7 +1,7 @@
 using Cbc
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","mixintprog.jl"))
-include(joinpath(Pkg.dir("MathProgBase"),"example","knapsack.jl"))
+include(joinpath(dirname(@__FILE__),"..","examples","knapsack.jl"))
 
 mixintprogtest(CbcSolver(logLevel=1))
 
