@@ -1,6 +1,8 @@
 Cbc.jl
 =========
 
+[![Build Status](https://travis-ci.org/JuliaOpt/Cbc.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/Cbc.jl)
+
 This is a Julia interface to the mixed-integer linear programming solver **[Cbc]**. Cbc is a high-performance open-source solver. A basic high-level ``mixintprog`` interface is provided through the **[MathProgBase]** package.
 
 The supported platforms are Linux, OS X, and Windows. Binaries are provided for Windows and OS X, and will be installed by default. On Linux, Cbc will be automatically compiled from source. Ensure that a C++ compiler is installed first; on Debian-based systems, install the ``build-essential`` package.
