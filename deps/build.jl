@@ -1,10 +1,11 @@
 using BinDeps
+using Compat
 
 @BinDeps.setup
 
 function validate_clp(name,handle)
     try
-        p = dlsym(handle, :Clp_VersionMajor)
+        p = Libdl.dlsym(handle, :Clp_VersionMajor)
         return p != C_NULL
     catch
         return false
@@ -14,7 +15,7 @@ end
 function validate_cbc(name,handle)
     try
         # Pre 2.8.12 doesn't have this defined
-        p = dlsym(handle, :Cbc_setInitialSolution)
+        p = Libdl.dlsym(handle, :Cbc_setInitialSolution)
         return p != C_NULL
     catch
         return false
@@ -59,4 +60,4 @@ provides(SimpleBuild,
         end
     end),[libclp,libcbcsolver], os = :Unix)
 
-@BinDeps.install [:libclp => :libclp, :libcbcsolver => :libcbcsolver]
+@BinDeps.install @compat(Dict(:libclp => :libclp, :libcbcsolver => :libcbcsolver))

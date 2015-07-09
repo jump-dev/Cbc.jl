@@ -1,4 +1,3 @@
-
 module Cbc
 
 if isfile(joinpath(Pkg.dir("Cbc"),"deps","deps.jl"))
