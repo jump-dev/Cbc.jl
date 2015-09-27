@@ -107,9 +107,9 @@ typealias CoinBigIndex Int32
 typealias CoinBigDouble Float64
 
 # copied from Clp.jl
-typealias VecOrNothing Union(Vector,Nothing)
+@compat typealias VecOrNothing Union{Vector,Void}
 function vec_or_null{T}(::Type{T}, a::VecOrNothing, len::Integer)
-    if isequal(a, nothing) || isa(a, Array{None}) || length(a) == 0
+    if isequal(a, nothing) || length(a) == 0
         return C_NULL
     else # todo: helpful message if convert fails
         if length(a) != len
@@ -120,7 +120,7 @@ function vec_or_null{T}(::Type{T}, a::VecOrNothing, len::Integer)
 end
 
 function getVersion()
-    s = @cbc_ccall getVersion Ptr{Uint8} ()
+    s = @cbc_ccall getVersion Ptr{UInt8} ()
     return bytestring(s)
 end
 
@@ -141,12 +141,12 @@ end
 
 function readMps(prob::CbcModel, filename::ASCIIString)
     check_problem(prob)
-    @cbc_ccall readMps Cint (Ptr{Void}, Ptr{Uint8}) prob.p filename
+    @cbc_ccall readMps Cint (Ptr{Void}, Ptr{UInt8}) prob.p filename
 end
 
 function writeMps(prob::CbcModel, filename::ASCIIString)
     check_problem(prob)
-    @cbc_ccall writeMps Cint (Ptr{Void}, Ptr{Uint8}) prob.p filename
+    @cbc_ccall writeMps Cint (Ptr{Void}, Ptr{UInt8}) prob.p filename
 end
 
 function setInitialSolution(prob::CbcModel, array::Vector{Float64})
@@ -156,14 +156,14 @@ end
 
 function problemName(prob::CbcModel)
     check_problem(prob)
-    a = Array(Uint8, 100)
-    @cbc_ccall problemName Void (Ptr{Void},Cint,Ptr{Uint8}) prob.p 100, a
+    a = Array(UInt8, 100)
+    @cbc_ccall problemName Void (Ptr{Void},Cint,Ptr{UInt8}) prob.p 100, a
     return bytestring(a)
 end
 
 function setProblemName(prob::CbcModel)
     check_problem(prob)
-    @cbc_ccall setProblemName Cint (Ptr{Void},Ptr{Uint8}) prob.p bytestring(a)
+    @cbc_ccall setProblemName Cint (Ptr{Void},Ptr{UInt8}) prob.p bytestring(a)
 end
 
 function getNumElements(prob::CbcModel)
@@ -254,8 +254,8 @@ function Base.copy(prob::CbcModel)
     return prob
 end
 
-function setParameter(prob::CbcModel, name::String, value::String)
-    @cbc_ccall setParameter Void (Ptr{Void},Ptr{Uint8},Ptr{Uint8}) prob.p bytestring(name) bytestring(value)
+function setParameter(prob::CbcModel, name::AbstractString, value::AbstractString)
+    @cbc_ccall setParameter Void (Ptr{Void},Ptr{UInt8},Ptr{UInt8}) prob.p bytestring(name) bytestring(value)
 end
 
 # TODO: registerCallBack clearCallBack

@@ -58,7 +58,7 @@ function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, s
     setsense!(m, sense)
 end
 
-function writeproblem(m::CbcMathProgModel, filename::String)
+function writeproblem(m::CbcMathProgModel, filename::AbstractString)
     if endswith(filename,".mps")
         writeMps(m.inner, filename)
     else
