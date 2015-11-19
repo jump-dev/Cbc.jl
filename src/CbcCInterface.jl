@@ -1,7 +1,5 @@
 module CbcCInterface
 
-using Compat
-
 import ..Cbc
 
 export CbcModel,
@@ -107,7 +105,7 @@ typealias CoinBigIndex Int32
 typealias CoinBigDouble Float64
 
 # copied from Clp.jl
-@compat typealias VecOrNothing Union{Vector,Void}
+typealias VecOrNothing Union{Vector,Void}
 function vec_or_null{T}(::Type{T}, a::VecOrNothing, len::Integer)
     if isequal(a, nothing) || length(a) == 0
         return C_NULL
@@ -136,7 +134,7 @@ function loadProblem(prob::CbcModel,
 
     @cbc_ccall loadProblem Void (Ptr{Void}, Int32, Int32, Ptr{CoinBigIndex},
         Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-        Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob.p ncol nrow mat.colptr.-@compat(Int32(1)) mat.rowval.-@compat(Int32(1)) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
+        Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob.p ncol nrow mat.colptr.-Int32(1) mat.rowval.-Int32(1) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
 end
 
 function readMps(prob::CbcModel, filename::ASCIIString)
@@ -174,21 +172,21 @@ end
 function getVectorStarts(prob::CbcModel)
     check_problem(prob)
     p = @cbc_ccall getVectorStarts Ptr{CoinBigIndex} (Ptr{Void},) prob.p
-    num_cols = @compat(Int(getNumCols(prob)))
+    num_cols = Int(getNumCols(prob))
     return copy(pointer_to_array(p,(num_cols+1,)))
 end
 
 function getIndices(prob::CbcModel)
     check_problem(prob)
     p = @cbc_ccall getIndices Ptr{Cint} (Ptr{Void},) prob.p
-    nnz = @compat(Int(getNumElements(prob)))
+    nnz = Int(getNumElements(prob))
     return copy(pointer_to_array(p,(nnz,)))
 end
 
 function getElements(prob::CbcModel)
     check_problem(prob)
     p = @cbc_ccall getElements Ptr{Float64} (Ptr{Void},) prob.p
-    nnz = @compat(Int(getNumElements(prob)))
+    nnz = Int(getNumElements(prob))
     return copy(pointer_to_array(p,(nnz,)))
 end
 
@@ -209,7 +207,7 @@ end
 for s in (:getRowLower, :getRowUpper, :getRowActivity)
     @eval function ($s)(prob::CbcModel)
         check_problem(prob)
-        nrow = @compat(Int(getNumRows(prob)))
+        nrow = Int(getNumRows(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Void},) prob.p
         return copy(pointer_to_array(p,(nrow,)))
     end
@@ -218,7 +216,7 @@ end
 for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
     @eval function ($s)(prob::CbcModel)
         check_problem(prob)
-        ncol = @compat(Int(getNumCols(prob)))
+        ncol = Int(getNumCols(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Void},) prob.p
         return copy(pointer_to_array(p,(ncol,)))
     end

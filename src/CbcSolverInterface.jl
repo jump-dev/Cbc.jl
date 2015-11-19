@@ -1,7 +1,5 @@
 module CbcMathProgSolverInterface
 
-using Compat
-
 using Cbc.CbcCInterface
 
 importall MathProgBase.SolverInterface
