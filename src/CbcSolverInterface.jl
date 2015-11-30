@@ -26,7 +26,7 @@ export CbcMathProgModel,
     getrawsolver
 
 
-type CbcMathProgModel <: AbstractMathProgModel
+type CbcMathProgModel <: AbstractLinearQuadraticModel
     inner::CbcModel
     binaries::Vector{Int} # indices of binary variables
 end
@@ -51,7 +51,7 @@ function CbcMathProgModel(;options...)
     return CbcMathProgModel(c, Int[])
 end
 
-model(s::CbcSolver) = CbcMathProgModel(;s.options...)
+LinearQuadraticModel(s::CbcSolver) = CbcMathProgModel(;s.options...)
 
 function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
     loadProblem(m.inner, A, collb, colub, obj, rowlb, rowub)
