@@ -53,6 +53,9 @@ end
 
 LinearQuadraticModel(s::CbcSolver) = CbcMathProgModel(;s.options...)
 
+ConicModel(s::CbcSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
+supportedcones(s::CbcSolver) = [:Free,:Zero,:NonNeg,:NonPos]
+
 function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
     loadProblem(m.inner, A, collb, colub, obj, rowlb, rowub)
     setsense!(m, sense)
