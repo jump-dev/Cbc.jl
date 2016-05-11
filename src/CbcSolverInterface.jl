@@ -10,7 +10,6 @@ export CbcMathProgModel,
     model,
     loadproblem!,
     writeproblem,
-    updatemodel!,
     setsense!,
     getsense,
     numvar,
@@ -68,8 +67,6 @@ function writeproblem(m::CbcMathProgModel, filename::AbstractString)
         error("Only MPS output supported")
     end
 end
-
-updatemodel(m::CbcMathProgModel) = nothing
 
 function setsense!(m::CbcMathProgModel,sense)
     @assert sense == :Min || sense == :Max
