@@ -2,6 +2,8 @@ module CbcCInterface
 
 import ..Cbc
 
+import Compat: String, unsafe_wrap
+
 export CbcModel,
     loadProblem,
     readMps,
@@ -119,7 +121,7 @@ end
 
 function getVersion()
     s = @cbc_ccall getVersion Ptr{UInt8} ()
-    return bytestring(s)
+    return string(s)
 end
 
 function loadProblem(prob::CbcModel,
@@ -137,13 +139,15 @@ function loadProblem(prob::CbcModel,
         Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob.p ncol nrow mat.colptr.-Int32(1) mat.rowval.-Int32(1) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
 end
 
-function readMps(prob::CbcModel, filename::ASCIIString)
+function readMps(prob::CbcModel, filename::String)
     check_problem(prob)
+    @assert isascii(filename)
     @cbc_ccall readMps Cint (Ptr{Void}, Ptr{UInt8}) prob.p filename
 end
 
-function writeMps(prob::CbcModel, filename::ASCIIString)
+function writeMps(prob::CbcModel, filename::String)
     check_problem(prob)
+    @assert isascii(filename)
     @cbc_ccall writeMps Cint (Ptr{Void}, Ptr{UInt8}) prob.p filename
 end
 
@@ -156,13 +160,13 @@ function problemName(prob::CbcModel)
     check_problem(prob)
     a = Array(UInt8, 100)
     @cbc_ccall problemName Void (Ptr{Void},Cint,Ptr{UInt8}) prob.p 100, a
-    return bytestring(a)
+    return string(a)
 end
 
-function setProblemName(prob::CbcModel)
-    check_problem(prob)
-    @cbc_ccall setProblemName Cint (Ptr{Void},Ptr{UInt8}) prob.p bytestring(a)
-end
+#function setProblemName(prob::CbcModel)
+#    check_problem(prob)
+#    @cbc_ccall setProblemName Cint (Ptr{Void},Ptr{UInt8}) prob.p bytestring(a)
+#end
 
 function getNumElements(prob::CbcModel)
     check_problem(prob)
@@ -173,21 +177,21 @@ function getVectorStarts(prob::CbcModel)
     check_problem(prob)
     p = @cbc_ccall getVectorStarts Ptr{CoinBigIndex} (Ptr{Void},) prob.p
     num_cols = Int(getNumCols(prob))
-    return copy(pointer_to_array(p,(num_cols+1,)))
+    return copy(unsafe_wrap(Array,p,(num_cols+1,)))
 end
 
 function getIndices(prob::CbcModel)
     check_problem(prob)
     p = @cbc_ccall getIndices Ptr{Cint} (Ptr{Void},) prob.p
     nnz = Int(getNumElements(prob))
-    return copy(pointer_to_array(p,(nnz,)))
+    return copy(unsafe_wrap(Array,p,(nnz,)))
 end
 
 function getElements(prob::CbcModel)
     check_problem(prob)
     p = @cbc_ccall getElements Ptr{Float64} (Ptr{Void},) prob.p
     nnz = Int(getNumElements(prob))
-    return copy(pointer_to_array(p,(nnz,)))
+    return copy(unsafe_wrap(Array,p,(nnz,)))
 end
 
 # TODO: maxNameLength getRowName getColName setColName setRowName
@@ -209,7 +213,7 @@ for s in (:getRowLower, :getRowUpper, :getRowActivity)
         check_problem(prob)
         nrow = Int(getNumRows(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Void},) prob.p
-        return copy(pointer_to_array(p,(nrow,)))
+        return copy(unsafe_wrap(Array,p,(nrow,)))
     end
 end
 
@@ -218,7 +222,7 @@ for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
         check_problem(prob)
         ncol = Int(getNumCols(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Void},) prob.p
-        return copy(pointer_to_array(p,(ncol,)))
+        return copy(unsafe_wrap(Array,p,(ncol,)))
     end
 end
 
@@ -252,8 +256,10 @@ function Base.copy(prob::CbcModel)
     return prob
 end
 
-function setParameter(prob::CbcModel, name::AbstractString, value::AbstractString)
-    @cbc_ccall setParameter Void (Ptr{Void},Ptr{UInt8},Ptr{UInt8}) prob.p bytestring(name) bytestring(value)
+function setParameter(prob::CbcModel, name::String, value::String)
+    @assert isascii(name)
+    @assert isascii(value)
+    @cbc_ccall setParameter Void (Ptr{Void},Ptr{UInt8},Ptr{UInt8}) prob.p name value
 end
 
 # TODO: registerCallBack clearCallBack
