@@ -22,11 +22,11 @@ function validate_cbc(name,handle)
     end
 end
 
-@unix_only begin
+if is_unix()
     libclp = library_dependency("libclp",aliases=["libClp"], validate=validate_clp)
     libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"], validate=validate_cbc)
 end
-@windows_only begin
+if is_windows()
     using WinRPM
     libclp = library_dependency("libclp",aliases=["libClp-1"], validate=validate_clp)
     libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"], validate=validate_cbc)
@@ -38,7 +38,7 @@ cbcname = "Cbc-2.9.1"
 provides(Sources, URI("http://www.coin-or.org/download/source/Cbc/$cbcname.tgz"),
     [libclp,libcbcsolver], os = :Unix)
 
-@osx_only begin
+if is_apple()
     using Homebrew
     if Homebrew.installed("coinmp") # coinmp package is old and conflicts with cbc package
         Homebrew.rm("coinmp")
