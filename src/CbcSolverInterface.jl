@@ -30,7 +30,7 @@ type CbcMathProgModel <: AbstractLinearQuadraticModel
     binaries::Vector{Int} # indices of binary variables
 end
 
-immutable CbcSolver <: AbstractMathProgSolver
+type CbcSolver <: AbstractMathProgSolver
     options 
 end
 CbcSolver(;kwargs...) = CbcSolver(kwargs)
@@ -38,14 +38,9 @@ CbcSolver(;kwargs...) = CbcSolver(kwargs)
 
 function CbcMathProgModel(;options...)
     c = CbcModel()
-    setParameter(c, "log", "0")
-    old_parameters = [:MipMaxSeconds, :LogLevel, :MipMaxSolutions, :MipMaxNodes, :MipAllowableGap, :MipFractionalGap]
+    setParameter(c, "logLevel", "0")
     for (optname, optval) in options
-        if optname in old_parameters
-            warn("Option $optname is no longer recognized. See https://github.com/JuliaOpt/Cbc.jl for renamed list of options.")
-        else
-            setParameter(c, string(optname), string(optval))
-        end
+        setParameter(c, string(optname), string(optval))
     end
     return CbcMathProgModel(c, Int[])
 end
@@ -54,6 +49,37 @@ LinearQuadraticModel(s::CbcSolver) = CbcMathProgModel(;s.options...)
 
 ConicModel(s::CbcSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 supportedcones(s::CbcSolver) = [:Free,:Zero,:NonNeg,:NonPos]
+
+function setparameters!(s::CbcSolver; mpboptions...)
+    opts = collect(s.options)
+    silent = false
+    for (optname, optval) in mpboptions
+        if optname == :TimeLimit
+            push!(opts, (:seconds,optval))
+        elseif optname == :Silent
+            if optval == true
+                push!(opts, (:logLevel,0))
+            end
+        else
+            error("Unrecognized parameter $optname")
+        end
+    end
+    s.options = opts
+end
+
+function setparameters!(s::CbcMathProgModel; mpboptions...)
+    for (optname, optval) in mpboptions
+        if optname == :TimeLimit
+            setParameter(s.inner, "seconds", string(optval))
+        elseif optname == :Silent
+            if optval == true
+                setParameter(s.inner, "logLevel","0")
+            end
+        else
+            error("Unrecognized parameter $optname")
+        end
+    end
+end
 
 function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
     loadProblem(m.inner, A, collb, colub, obj, rowlb, rowub)
