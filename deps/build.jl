@@ -1,5 +1,4 @@
 using BinDeps
-using Compat
 
 @BinDeps.setup
 
@@ -60,4 +59,4 @@ provides(SimpleBuild,
         end
     end),[libclp,libcbcsolver], os = :Unix)
 
-@BinDeps.install @compat(Dict(:libclp => :libclp, :libcbcsolver => :libcbcsolver))
+@BinDeps.install Dict(:libclp => :libclp, :libcbcsolver => :libcbcsolver)
