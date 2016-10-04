@@ -194,6 +194,8 @@ function getobjgap(m::CbcMathProgModel)
     return abs(b-f)/abs(f)
 end
 
+getnodecount(m::CbcMathProgModel) = getNodeCount(m.inner)
+
 getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 
 getrawsolver(m::CbcMathProgModel) = m.inner
