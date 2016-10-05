@@ -18,6 +18,7 @@ export CbcMathProgModel,
     setvartype!,
     optimize!,
     status,
+    getnodecount,
     getobjval,
     getobjgap,
     getobjbound,
@@ -192,6 +193,8 @@ function getobjgap(m::CbcMathProgModel)
     f = getObjValue(m.inner)
     return abs(b-f)/abs(f)
 end
+
+getnodecount(m::CbcMathProgModel) = getNodeCount(m.inner)
 
 getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 

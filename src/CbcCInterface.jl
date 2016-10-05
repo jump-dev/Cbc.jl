@@ -51,7 +51,7 @@ export CbcModel,
     isInitialSolveProvenPrimalInfeasible,
     getObjValue,
     getBestPossibleObjValue,
-    getNodecount,
+    getNodeCount,
     status,
     secondaryStatus,
     addSOS
