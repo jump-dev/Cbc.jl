@@ -2,8 +2,6 @@ module CbcCInterface
 
 import ..Cbc
 
-import Compat: String, unsafe_wrap
-
 export CbcModel,
     loadProblem,
     readMps,
@@ -61,6 +59,7 @@ export CbcModel,
 # helper macros/functions
 
 macro cbc_ccall(func, args...)
+    args = map(esc,args)
     f = "Cbc_$(func)"
     quote
         ccall(($f,Cbc.libcbcsolver), $(args...))

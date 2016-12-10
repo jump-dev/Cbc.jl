@@ -3,8 +3,7 @@ Cbc.jl
 
 [![Build Status](https://travis-ci.org/JuliaOpt/Cbc.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/Cbc.jl)
 
-[![Cbc](http://pkg.julialang.org/badges/Cbc_0.3.svg)](http://pkg.julialang.org/?pkg=Cbc&ver=0.3)
-[![Cbc](http://pkg.julialang.org/badges/Cbc_0.4.svg)](http://pkg.julialang.org/?pkg=Cbc&ver=0.4)
+[![Cbc](http://pkg.julialang.org/badges/Cbc_0.5.svg)](http://pkg.julialang.org/?pkg=Cbc&ver=0.5)
 
 This is a Julia interface to the mixed-integer linear programming solver **[Cbc]**. Cbc is a high-performance open-source solver. A basic high-level ``mixintprog`` interface is provided through the **[MathProgBase]** package.
 
