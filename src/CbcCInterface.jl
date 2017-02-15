@@ -158,7 +158,7 @@ end
 function problemName(prob::CbcModel)
     check_problem(prob)
     a = Array(UInt8, 100)
-    @cbc_ccall problemName Void (Ptr{Void},Cint,Ptr{UInt8}) prob.p 100, a
+    @cbc_ccall problemName Void (Ptr{Void},Cint,Ptr{UInt8}) prob.p 100 a
     return string(a)
 end
 
