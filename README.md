@@ -34,6 +34,8 @@ The following options are likely to be the most useful:
 
 The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt.
 
+In addition, we provide the julia-specific option ``check_warmstart`` which, if set to ``false``, will tell the wrapper to pass along the warmstart solution regardless of if it satisfies the constraints of the problem. The default value is ``true``.
+
 ### Using the C interface
 
 The low-level C interface is available in the ``CbcCInterface`` submodule:

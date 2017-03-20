@@ -28,6 +28,7 @@ export CbcMathProgModel,
 
 type CbcMathProgModel <: AbstractLinearQuadraticModel
     inner::CbcModel
+    check_warmstart::Bool
     binaries::Vector{Int} # indices of binary variables
 end
 
@@ -37,13 +38,13 @@ end
 CbcSolver(;kwargs...) = CbcSolver(kwargs)
 
 
-function CbcMathProgModel(;options...)
+function CbcMathProgModel(;check_warmstart::Bool=true,options...)
     c = CbcModel()
     setParameter(c, "logLevel", "0")
     for (optname, optval) in options
         setParameter(c, string(optname), string(optval))
     end
-    return CbcMathProgModel(c, Int[])
+    return CbcMathProgModel(c, check_warmstart, Int[])
 end
 
 LinearQuadraticModel(s::CbcSolver) = CbcMathProgModel(;s.options...)
@@ -207,24 +208,26 @@ function setwarmstart!(m::CbcMathProgModel, v)
     end
 
     # ignore if not feasible
-    @assert length(v) == numvar(m)
-    l = getColLower(m.inner)
-    u = getColUpper(m.inner)
-    for i in 1:length(v)
-        if !(l[i] - 1e-6 <= v[i] <= u[i] + 1e-6)
-            return
+    if m.check_warmstart
+        @assert length(v) == numvar(m)
+        l = getColLower(m.inner)
+        u = getColUpper(m.inner)
+        for i in 1:length(v)
+            if !(l[i] - 1e-6 <= v[i] <= u[i] + 1e-6)
+                return
+            end
+            if isInteger(m.inner, i-1) && !isinteger(l[i])
+                return
+            end
         end
-        if isInteger(m.inner, i-1) && !isinteger(l[i])
-            return
-        end
-    end
-    lb = getRowLower(m.inner)
-    ub = getRowUpper(m.inner)
-    A = getconstrmatrix(m)
-    rowval = A*v
-    for i in 1:numconstr(m)
-        if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)
-            return
+        lb = getRowLower(m.inner)
+        ub = getRowUpper(m.inner)
+        A = getconstrmatrix(m)
+        rowval = A*v
+        for i in 1:numconstr(m)
+            if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)
+                return
+            end
         end
     end
     setInitialSolution(m.inner, v)
