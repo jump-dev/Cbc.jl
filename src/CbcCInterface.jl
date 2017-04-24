@@ -54,7 +54,7 @@ export CbcModel,
     secondaryStatus,
     addSOS
 
-    
+
 
 # helper macros/functions
 
@@ -102,11 +102,11 @@ end
 # Note: we assume COIN_BIG_INDEX and COIN_BIG_DOUBLE
 # were not defined when compiling Cbc (which is the
 # default)
-typealias CoinBigIndex Int32
-typealias CoinBigDouble Float64
+const CoinBigIndex = Int32
+const CoinBigDouble = Float64
 
 # copied from Clp.jl
-typealias VecOrNothing Union{Vector,Void}
+const VecOrNothing = Union{Vector,Void}
 function vec_or_null{T}(::Type{T}, a::VecOrNothing, len::Integer)
     if isequal(a, nothing) || length(a) == 0
         return C_NULL
