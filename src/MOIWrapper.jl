@@ -128,6 +128,22 @@ function updateBoundsForBinaryVars!(col_lb::Vector{Float64}, col_ub::Vector{Floa
     end
 end
 
+function updateZeroOneIndices(userOptimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
+    ci::Vector{MOI.ConstraintIndex{F,S}}, zeroOneIndices::Vector{Int64}) where {F, S}
+    for i in 1:length(ci)
+        f = MOI.get(userOptimizer, MOI.ConstraintFunction(), ci[i])
+        push!(zeroOneIndices, mapping.varmap[f.variable].value)
+    end
+end
+
+function updateIntegerIndices(userOptimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
+    ci::Vector{MOI.ConstraintIndex{F,S}}, integerIndices::Vector{Int64}) where {F, S}
+    for i in 1:length(ci)
+        f = MOI.get(userOptimizer, MOI.ConstraintFunction(), ci[i])
+        push!(integerIndices, mapping.varmap[f.variable].value)
+    end
+end
+
 ```
     Create inner model cbcOptimizer based on abstract model userOptimizer provided by user.
     Fill the object of type CbcModelFormat:
@@ -163,15 +179,10 @@ function MOI.copy!(cbcOptimizer::CbcOptimizer,
 
         ci = MOI.get(userOptimizer, MOI.ListOfConstraintIndices{F,S}())
 
-        if S <: Union{MOI.ZeroOne, MOI.Integer}
-            for i in 1:length(ci)
-                f = MOI.get(userOptimizer, MOI.ConstraintFunction(), ci[i])
-                if S == MOI.ZeroOne
-                    push!(zeroOneIndices, mapping.varmap[f.variable].value)
-                elseif S == MOI.Integer
-                    push!(integerIndices, mapping.varmap[f.variable].value)
-                end
-            end
+        if S == MOI.ZeroOne
+            updateZeroOneIndices(userOptimizer, mapping, ci, zeroOneIndices)
+        elseif S == MOI.Integer
+            updateIntegerIndices(userOptimizer, mapping, ci, integerIndices)
         end
 
         ## Update conmap for (F,S) for F != MOI.SingleVariable
