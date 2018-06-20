@@ -11,11 +11,10 @@ const CbcCI = CbcCInterface
 mutable struct CbcOptimizer <: MOI.AbstractOptimizer
     inner::CbcModel
     # env
-    objFunctConstant::Float64
-    CbcOptimizer() = new(CbcModel(), 0.0) # Initializes with an empty model
+    CbcOptimizer() = new(CbcModel()) # Initializes with an empty model
 end
 
-mutable struct CbcModelFormat
+struct CbcModelFormat
     nbRows::Int
     nbCols::Int
     constraint_matrix::SparseMatrixCSC{Float64,Int}
@@ -205,7 +204,6 @@ function MOI.copy!(cbcOptimizer::CbcOptimizer,
     ## Copy objective function
     objF = MOI.get(userOptimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     loadObj(cbcModelFormat, mapping, objF)
-    cbcOptimizer.objFunctConstant = objF.constant
     sense = MOI.get(userOptimizer, MOI.ObjectiveSense())
     MOI.set!(cbcOptimizer, MOI.ObjectiveSense(), sense)
 
@@ -289,7 +287,7 @@ MOI.get(cbcOptimizer::CbcOptimizer, object::MOI.NodeCount) = CbcCI.getNodeCount(
 
 
 function MOI.get(cbcOptimizer::CbcOptimizer, object::MOI.ObjectiveValue)
-    return (CbcCI.getObjValue(cbcOptimizer.inner) + cbcOptimizer.objFunctConstant)
+    return CbcCI.getObjValue(cbcOptimizer.inner)
 end
 
 function MOI.get(cbcOptimizer::CbcOptimizer, object::MOI.VariablePrimal, ref::MOI.VariableIndex)
