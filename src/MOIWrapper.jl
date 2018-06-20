@@ -10,7 +10,6 @@ const CbcCI = CbcCInterface
 
 mutable struct CbcOptimizer <: MOI.AbstractOptimizer
     inner::CbcModel
-    # env
     CbcOptimizer() = new(CbcModel()) # Initializes with an empty model
 end
 
@@ -143,18 +142,10 @@ function updateIntegerIndices(userOptimizer::MOI.ModelLike, mapping::MOIU.IndexM
     end
 end
 
-"""
-    Create inner model cbcOptimizer based on abstract model userOptimizer provided by user.
-    Fill the object of type CbcModelFormat:
-        constraint_matrix::AbstractMatrix,
-        col_lb::VecOrNothing,
-        col_ub::VecOrNothing,
-        obj::VecOrNothing,
-        row_lb::VecOrNothing,
-        row_ub::VecOrNothing,
-    These are needed by function loadProblem of CbcCInterface.
-
-"""
+    """
+    Receive a cbcOptimizer which contains the pointer to the cbc C object and instanciate the object cbcModelFormat::CbcModelFormat based on userOptimizer::AbstractModel (also provided by the user).
+    Function loadProblem of CbcCInterface requires all information stored in cbcModelFormat.
+    """
 function MOI.copy!(cbcOptimizer::CbcOptimizer,
     userOptimizer::MOI.ModelLike; copynames=false)
 
