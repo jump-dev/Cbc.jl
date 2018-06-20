@@ -18,7 +18,7 @@ end
 mutable struct CbcModelFormat
     nbRows::Int
     nbCols::Int
-    constraint_matrix::SparseMatrixCSC{Float64,Int32}
+    constraint_matrix::SparseMatrixCSC{Float64,Int}
     col_lb::Vector{Float64}
     col_ub::Vector{Float64}
     obj::Vector{Float64}
@@ -129,7 +129,7 @@ function updateBoundsForBinaryVars!(col_lb::Vector{Float64}, col_ub::Vector{Floa
 end
 
 function updateZeroOneIndices(userOptimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
-    ci::Vector{MOI.ConstraintIndex{F,S}}, zeroOneIndices::Vector{Int64}) where {F, S}
+    ci::Vector{MOI.ConstraintIndex{F,S}}, zeroOneIndices::Vector{Int}) where {F, S}
     for i in 1:length(ci)
         f = MOI.get(userOptimizer, MOI.ConstraintFunction(), ci[i])
         push!(zeroOneIndices, mapping.varmap[f.variable].value)
@@ -137,14 +137,14 @@ function updateZeroOneIndices(userOptimizer::MOI.ModelLike, mapping::MOIU.IndexM
 end
 
 function updateIntegerIndices(userOptimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
-    ci::Vector{MOI.ConstraintIndex{F,S}}, integerIndices::Vector{Int64}) where {F, S}
+    ci::Vector{MOI.ConstraintIndex{F,S}}, integerIndices::Vector{Int}) where {F, S}
     for i in 1:length(ci)
         f = MOI.get(userOptimizer, MOI.ConstraintFunction(), ci[i])
         push!(integerIndices, mapping.varmap[f.variable].value)
     end
 end
 
-```
+"""
     Create inner model cbcOptimizer based on abstract model userOptimizer provided by user.
     Fill the object of type CbcModelFormat:
         constraint_matrix::AbstractMatrix,
@@ -155,7 +155,7 @@ end
         row_ub::VecOrNothing,
     These are needed by function loadProblem of CbcCInterface.
 
-```
+"""
 function MOI.copy!(cbcOptimizer::CbcOptimizer,
     userOptimizer::MOI.ModelLike; copynames=false)
 
@@ -349,8 +349,3 @@ function MOI.get(cbcOptimizer::CbcOptimizer, object::MOI.PrimalStatus)
         return MOI.InfeasiblePoint
     end
 end
-
-
-
-
-#
