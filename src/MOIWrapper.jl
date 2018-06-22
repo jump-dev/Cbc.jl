@@ -236,6 +236,11 @@ MOI.supports(cbcOptimizer::CbcOptimizer, object::MOI.ObjectiveFunction{MOI.Scala
 
 ## Set functions
 
+function MOI.write(cbcOptimizer::CbcOptimizer, filename::String)
+    writeMps(cbcOptimizer.inner, filename)
+end
+
+
 # empty!
 function MOI.empty!(cbcOptimizer::CbcOptimizer)
     cbcOptimizer.inner = CbcModel()
