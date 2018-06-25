@@ -16,8 +16,9 @@ end
 struct CbcModelFormat
     num_rows::Int
     num_cols::Int
-    # contraint_matrix::Vector{Tuple{Int,Int,Float64}}
-    constraint_matrix::SparseMatrixCSC{Float64,Int}
+    row_idx::Vector{Int}
+    col_idx::Vector{Int}
+    values::Vector{Float64}
     col_lb::Vector{Float64}
     col_ub::Vector{Float64}
     obj::Vector{Float64}
@@ -25,13 +26,15 @@ struct CbcModelFormat
     row_ub::Vector{Float64}
     function CbcModelFormat(num_rows::Int, num_cols::Int)
         obj = fill(0.0, num_cols)
+        row_idx = Int[]
+        col_idx = Int[]
+        values = Float64[]
         col_lb = fill(-Inf, num_cols)
         col_ub = fill(Inf, num_cols)
         row_lb = fill(-Inf, num_rows)
         row_ub = fill(Inf, num_rows)
-        # constraint_matrix = Tuple{Int,Int,Float64}[]
-        constraint_matrix = sparse(Int[], Int[], Float64[], num_rows, num_cols)
-        new(num_rows, num_cols, constraint_matrix, col_lb, col_ub, obj, row_lb, row_ub)
+        constraint_matrix = Tuple{Int,Int,Float64}[]
+        new(num_rows, num_cols, row_idx, col_idx, values, col_lb, col_ub, obj, row_lb, row_ub)
     end
 end
 
@@ -58,40 +61,42 @@ function load_constraint(ci::MOI.ConstraintIndex, cbc_model_format::CbcModelForm
     cbc_model_format.col_ub[mapping.varmap[f.variable].value] = s.upper
 end
 
+function push_terms(row_idx::Vector{Int}, col_idx::Vector{Int}, values::Vector{Float64},
+    ci::MOI.ConstraintIndex{F,S}, terms::Vector{MOI.ScalarAffineTerm{Float64}},
+    mapping::MOIU.IndexMap) where {F,S}
+    for term in terms
+        push!(row_idx, mapping.conmap[ci].value)
+        push!(col_idx, mapping.varmap[term.variable_index].value)
+        push!(values, term.coefficient)
+    end
+end
+
 function load_constraint(ci::MOI.ConstraintIndex, cbc_model_format::CbcModelFormat,
     mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction, s::MOI.EqualTo)
-    for term in f.terms
-        cbc_model_format.constraint_matrix[mapping.conmap[ci].value,
-        mapping.varmap[term.variable_index].value] += term.coefficient
-    end
+    push_terms(cbc_model_format.row_idx, cbc_model_format.col_idx,
+               cbc_model_format.values, ci, f.terms, mapping)
     cbc_model_format.row_lb[mapping.conmap[ci].value] = s.value - f.constant
     cbc_model_format.row_ub[mapping.conmap[ci].value] = s.value - f.constant
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, cbc_model_format::CbcModelFormat,
     mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction, s::MOI.GreaterThan)
-    for term in f.terms
-        cbc_model_format.constraint_matrix[mapping.conmap[ci].value,
-        mapping.varmap[term.variable_index].value] += term.coefficient
-    end
+    push_terms(cbc_model_format.row_idx, cbc_model_format.col_idx,
+               cbc_model_format.values, ci, f.terms, mapping)
     cbc_model_format.row_lb[mapping.conmap[ci].value] = s.lower - f.constant
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, cbc_model_format::CbcModelFormat, mapping::MOIU.IndexMap,
     f::MOI.ScalarAffineFunction, s::MOI.LessThan)
-    for term in f.terms
-        cbc_model_format.constraint_matrix[mapping.conmap[ci].value,
-        mapping.varmap[term.variable_index].value] += term.coefficient
-    end
+    push_terms(cbc_model_format.row_idx, cbc_model_format.col_idx,
+               cbc_model_format.values, ci, f.terms, mapping)
     cbc_model_format.row_ub[mapping.conmap[ci].value] = s.upper - f.constant
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, cbc_model_format::CbcModelFormat, mapping::MOIU.IndexMap,
     f::MOI.ScalarAffineFunction, s::MOI.Interval)
-    for term in f.terms
-        cbc_model_format.constraint_matrix[mapping.conmap[ci].value,
-        mapping.varmap[term.variable_index].value] += term.coefficient
-    end
+    push_terms(cbc_model_format.row_idx, cbc_model_format.col_idx,
+               cbc_model_format.values, ci, f.terms, mapping)
     cbc_model_format.row_ub[mapping.conmap[ci].value] = s.upper - f.constant
     cbc_model_format.row_lb[mapping.conmap[ci].value] = s.lower - f.constant
 end
@@ -99,6 +104,8 @@ end
 
 function load_obj(cbc_model_format::CbcModelFormat, mapping::MOIU.IndexMap,
     f::MOI.ScalarAffineFunction)
+    # We need to increment values of objective function with += to handle cases like $x_1 + x_2 + x_1$
+    # This is safe becasue objective function is initialized with zeros in the constructor
     for term in f.terms
         cbc_model_format.obj[mapping.varmap[term.variable_index].value] += term.coefficient
     end
@@ -118,12 +125,12 @@ function copy_constraints!(cbc_model_format::CbcModelFormat, user_optimizer::MOI
 end
 
 function update_bounds_for_binary_vars!(col_lb::Vector{Float64}, col_ub::Vector{Float64}, zero_one_indices::Vector{Int})
-    for colIdx in zero_one_indices
-        if col_lb[colIdx] < 0.0
-            col_lb[colIdx] = 0.0
+    for idx in zero_one_indices
+        if col_lb[idx] < 0.0
+            col_lb[idx] = 0.0
         end
-        if col_ub[colIdx] > 1.0
-            col_ub[colIdx] = 1.0
+        if col_ub[idx] > 1.0
+            col_ub[idx] = 1.0
         end
     end
 end
@@ -201,13 +208,15 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
     MOI.set!(cbc_optimizer, MOI.ObjectiveSense(), sense)
 
     ## Load the problem to Cbc
-    CbcCI.loadProblem(cbc_optimizer.inner, cbc_model_format.constraint_matrix,
-    cbc_model_format.col_lb, cbc_model_format.col_ub, cbc_model_format.obj,
-    cbc_model_format.row_lb, cbc_model_format.row_ub)
+    CbcCI.loadProblem(cbc_optimizer.inner, sparse(cbc_model_format.row_idx, cbc_model_format.col_idx,
+                                                  cbc_model_format.values, cbc_model_format.num_rows,
+                                                  cbc_model_format.num_cols),
+                      cbc_model_format.col_lb, cbc_model_format.col_ub, cbc_model_format.obj,
+                      cbc_model_format.row_lb, cbc_model_format.row_ub)
 
     ## Set integer variables
-    for colIdx in vcat(integer_indices, zero_one_indices)
-        CbcCI.setInteger(cbc_optimizer.inner, colIdx-1)
+    for idx in vcat(integer_indices, zero_one_indices)
+        CbcCI.setInteger(cbc_optimizer.inner, idx-1)
     end
 
     return MOI.CopyResult(MOI.CopySuccess, "Model was copied succefully.", MOIU.IndexMap(mapping.varmap, mapping.conmap))
