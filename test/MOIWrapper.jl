@@ -44,10 +44,10 @@ end
     @testset "orderedindicestest" begin
         MOIT.orderedindicestest(optimizer)
     end
-    # @testset "canaddconstrainttest" begin ## do not pass due to vector of fariables
+    # @testset "canaddconstrainttest" begin ## do not pass due to vector of variables
     #     MOIT.canaddconstrainttest(optimizer, Float64, Complex{Float64})
     # end
-    # @testset "copytest" begin ## do not pass due to vector of fariables
+    # @testset "copytest" begin ## do not pass due to vector of variables
     #     MOIT.copytest(optimizer.optimizer, optimizer)
     # end
 end
