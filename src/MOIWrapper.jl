@@ -152,7 +152,9 @@ function update_integer_indices(user_optimizer::MOI.ModelLike, mapping::MOIU.Ind
 end
 
 """
-Receive a cbc_optimizer which contains the pointer to the cbc C object and instanciate the object cbc_model_format::CbcModelFormat based on user_optimizer::AbstractModel (also provided by the user).
+    function copy!(cbc_optimizer, user_optimizer; copynames=false)
+
+Receive a cbc_optimizer which contains the pointer to the cbc C object and instantiate the object cbc_model_format::CbcModelFormat based on user_optimizer::AbstractModel (also provided by the user).
 Function loadProblem of CbcCInterface requires all information stored in cbc_model_format.
 """
 function MOI.copy!(cbc_optimizer::CbcOptimizer,
@@ -178,16 +180,16 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
 
         ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
 
-        if S == MOI.ZeroOne
-            update_zeroone_indices(user_optimizer, mapping, ci, zero_one_indices)
-        elseif S == MOI.Integer
-            update_integer_indices(user_optimizer, mapping, ci, integer_indices)
-        end
-
-        ## Update conmap for (F,S) for F != MOI.SingleVariable
-        ## Single variables are treated by bounds in Cbc, so no
-        ## need to add a row
-        if F != MOI.SingleVariable
+        if F == MOI.SingleVariable
+            if S == MOI.ZeroOne
+                update_zeroone_indices(user_optimizer, mapping, ci, zero_one_indices)
+            elseif S == MOI.Integer
+                update_integer_indices(user_optimizer, mapping, ci, integer_indices)
+            end
+        else
+            ## Update conmap for (F,S) for F != MOI.SingleVariable
+            ## Single variables are treated by bounds in Cbc, so no
+            ## need to add a row
             for i in 1:length(ci)
                 mapping.conmap[ci[i]] = MOI.ConstraintIndex{F,S}(num_rows + i)
             end
@@ -213,6 +215,10 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
                                                   cbc_model_format.num_cols),
                       cbc_model_format.col_lb, cbc_model_format.col_ub, cbc_model_format.obj,
                       cbc_model_format.row_lb, cbc_model_format.row_ub)
+    
+    empty!(cbc_model_format.row_idx)
+    empty!(cbc_model_format.col_idx)
+    empty!(cbc_model_format.values)    
 
     ## Set integer variables
     for idx in vcat(integer_indices, zero_one_indices)
@@ -248,7 +254,11 @@ MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveFunction{MOI.Scal
 ## Set functions
 
 function MOI.write(cbc_optimizer::CbcOptimizer, filename::String)
-    writeMps(cbc_optimizer.inner, filename)
+    if !endswith("filename", "mps")
+        error("CbcOptimizer only supports writing .mps files")
+    else
+        writeMps(cbc_optimizer.inner, filename)
+    end
 end
 
 
