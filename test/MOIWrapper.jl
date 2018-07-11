@@ -11,12 +11,13 @@ const MOIB = MathOptInterface.Bridges
     optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), CbcOptimizer())
     config = MOIT.TestConfig(atol=1e-4, rtol=1e-4, duals = false, infeas_certificates = false)
     MOIT.contlineartest(optimizer, config, [
-    "linear1", ## asks for ConstraintPrimal
-    "linear2", ## asks for ConstraintPrimal
-    "linear7", ## uses vector of constraints
+    "linear1",  ## asks for ConstraintPrimal
+    "linear2",  ## asks for ConstraintPrimal
+    "linear7",  ## uses vector of constraints
     "linear10", ## asks for ConstraintPrimal
     "linear13", ## asks for ConstraintPrimal
-    "linear14" ## asks for ConstraintPrimal
+    "linear14", ## asks for ConstraintPrimal
+    "linear11"  ## fails due to a bug in Clp.
     ])
 end
 
