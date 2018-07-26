@@ -66,7 +66,7 @@ macro cbc_ccall(func, args...)
     end
 end
 
-type CbcModel
+mutable struct CbcModel
     p::Ptr{Void}
     function CbcModel()
         p = @cbc_ccall newModel Ptr{Void} ()
@@ -107,7 +107,7 @@ const CoinBigDouble = Float64
 
 # copied from Clp.jl
 const VecOrNothing = Union{Vector,Void}
-function vec_or_null{T}(::Type{T}, a::VecOrNothing, len::Integer)
+function vec_or_null(::Type{T}, a::VecOrNothing, len::Integer) where T
     if isequal(a, nothing) || length(a) == 0
         return C_NULL
     else # todo: helpful message if convert fails
