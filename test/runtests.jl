@@ -14,3 +14,5 @@ coniclineartest(solver)
 if isdir(Pkg.dir("JuMP"))
     include(joinpath(Pkg.dir("JuMP"),"test","runtests.jl"))
 end
+
+include("MOIWrapper.jl")
