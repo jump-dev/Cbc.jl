@@ -26,13 +26,13 @@ export CbcMathProgModel,
     getrawsolver
 
 
-type CbcMathProgModel <: AbstractLinearQuadraticModel
+mutable struct CbcMathProgModel <: AbstractLinearQuadraticModel
     inner::CbcModel
     check_warmstart::Bool
     binaries::Vector{Int} # indices of binary variables
 end
 
-type CbcSolver <: AbstractMathProgSolver
+mutable struct CbcSolver <: AbstractMathProgSolver
     options 
 end
 CbcSolver(;kwargs...) = CbcSolver(kwargs)
