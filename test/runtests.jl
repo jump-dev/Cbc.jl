@@ -11,8 +11,8 @@ MathProgBase.setparameters!(solver, Silent=true, TimeLimit=100.0)
 println("Cbc should not display any output from these tests")
 coniclineartest(solver)
 
-if isdir(Pkg.dir("JuMP"))
-    include(joinpath(Pkg.dir("JuMP"),"test","runtests.jl"))
-end
+# if isdir(Pkg.dir("JuMP"))
+#     include(joinpath(Pkg.dir("JuMP"),"test","runtests.jl"))
+# end
 
 include("MOIWrapper.jl")
