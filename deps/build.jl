@@ -1,4 +1,5 @@
 using BinDeps
+import Compat.Sys
 
 @BinDeps.setup
 
@@ -21,11 +22,11 @@ function validate_cbc(name,handle)
     end
 end
 
-if is_unix()
+if Sys.isunix()
     libclp = library_dependency("libclp",aliases=["libClp"], validate=validate_clp)
     libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver"], validate=validate_cbc)
 end
-if is_windows()
+if Sys.iswindows()
     using WinRPM
     libclp = library_dependency("libclp",aliases=["libClp-1"], validate=validate_clp)
     libcbcsolver = library_dependency("libcbcsolver",aliases=["libCbcSolver-3"], validate=validate_cbc)
@@ -37,7 +38,7 @@ cbcname = "Cbc-2.9.8"
 provides(Sources, URI("http://www.coin-or.org/download/source/Cbc/$cbcname.tgz"),
     [libclp,libcbcsolver], os = :Unix)
 
-if is_apple()
+if Sys.isapple()
     using Homebrew
     if Homebrew.installed("coinmp") # coinmp package is old and conflicts with cbc package
         Homebrew.rm("coinmp")
