@@ -33,7 +33,7 @@ mutable struct CbcMathProgModel <: AbstractLinearQuadraticModel
 end
 
 mutable struct CbcSolver <: AbstractMathProgSolver
-    options 
+    options
 end
 CbcSolver(;kwargs...) = CbcSolver(kwargs)
 
@@ -57,10 +57,18 @@ function setparameters!(s::CbcSolver; mpboptions...)
     silent = false
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
-            push!(opts, (:seconds,optval))
+            @static if VERSION >= v"0.7-"
+                push!(opts, :seconds => optval)
+            else
+                push!(opts, (:seconds, optval))
+            end
         elseif optname == :Silent
             if optval == true
-                push!(opts, (:logLevel,0))
+                @static if VERSION >= v"0.7-"
+                    push!(opts, :logLevel => 0)
+                else
+                    push!(opts, (:logLevel, 0))
+                end
             end
         else
             error("Unrecognized parameter $optname")
