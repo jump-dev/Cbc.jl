@@ -2,7 +2,7 @@ module CbcMathProgSolverInterface
 
 using Cbc.CbcCInterface
 
-importall MathProgBase.SolverInterface
+using MathProgBase.SolverInterface
 
 
 export CbcMathProgModel,
