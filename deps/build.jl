@@ -1,4 +1,5 @@
 using BinDeps
+using Libdl
 import Compat.Sys
 
 @BinDeps.setup
@@ -49,6 +50,8 @@ end
 prefix=joinpath(BinDeps.depsdir(libclp),"usr")
 patchdir=BinDeps.depsdir(libclp)
 srcdir = joinpath(BinDeps.depsdir(libclp),"src",cbcname)
+libdir = joinpath(prefix,"lib")
+push!(Libdl.DL_LOAD_PATH,libdir)
 
 provides(SimpleBuild,
     (@build_steps begin
