@@ -1,6 +1,7 @@
 module CbcMathProgSolverInterface
 
 using Cbc.CbcCInterface
+using Compat.SparseArrays
 
 import MathProgBase
 const MPB = MathProgBase.SolverInterface
