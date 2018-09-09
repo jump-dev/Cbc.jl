@@ -175,8 +175,8 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
     num_rows = 0
     for (F,S) in list_of_constraints
         if !(MOI.supportsconstraint(cbc_optimizer, F, S))
-            return MOI.CopyResult(MOI.CopyUnsupportedConstraint,
-            "Cbc MOI Interface does not support constraints of type " * (F,S) * ".", nothing)
+            # TODO: This should definitely throw something else.
+            error("Cbc MOI Interface does not support constraints of type " * (F,S) * ".")
         end
 
         ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
@@ -226,7 +226,7 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
         CbcCI.setInteger(cbc_optimizer.inner, idx-1)
     end
 
-    return MOI.CopyResult(MOI.CopySuccess, "Model was copied succefully.", MOIU.IndexMap(mapping.varmap, mapping.conmap))
+    return MOIU.IndexMap(mapping.varmap, mapping.conmap)
 end
 
 
@@ -239,8 +239,8 @@ end
 
 ## canadd, canset, canget functions
 
-function MOI.canaddvariable(cbc_optimizer::CbcOptimizer)
-    return false
+function MOI.addvariable!(cbc_optimizer::CbcOptimizer)
+    throw(MOI.CannotAddVariable())
 end
 
 ## supports constraints
@@ -251,6 +251,8 @@ MOI.supportsconstraint(::CbcOptimizer, ::Type{<:Union{MOI.ScalarAffineFunction{F
 MOI.GreaterThan{Float64}, MOI.ZeroOne, MOI.Integer}}) = true
 
 MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
+
+MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense) = true
 
 ## Set functions
 

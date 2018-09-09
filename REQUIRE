@@ -1,7 +1,7 @@
 julia 0.6
 BinDeps
 MathProgBase 0.5.5 0.8
-MathOptInterface 0.4.1 0.5
+MathOptInterface 0.5.1 0.6
 @osx Homebrew
 @windows WinRPM
 Compat 1.0
