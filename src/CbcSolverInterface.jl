@@ -4,45 +4,9 @@ using Cbc.CbcCInterface
 using Compat.SparseArrays
 
 import MathProgBase
-const MPB = MathProgBase.SolverInterface
+const MPB = MathProgBase
 
-import MathProgBase.SolverInterface: getnodecount,
-    getobjbound,
-    getobjgap,
-    getobjval,
-    getrawsolver,
-    getsense,
-    getsolution,
-    getvartype,
-    loadproblem!,
-    numconstr,
-    numvar,
-    optimize!,
-    setsense!,
-    setvartype!,
-    status,
-    writeproblem
-
-export CbcMathProgModel,
-    CbcSolver,
-    model,
-    loadproblem!,
-    writeproblem,
-    setsense!,
-    getsense,
-    numvar,
-    numconstr,
-    getvartype,
-    setvartype!,
-    optimize!,
-    status,
-    getnodecount,
-    getobjval,
-    getobjgap,
-    getobjbound,
-    getsolution,
-    getrawsolver
-
+export CbcMathProgModel, CbcSolver
 
 mutable struct CbcMathProgModel <: MPB.AbstractLinearQuadraticModel
     inner::CbcModel
@@ -111,7 +75,7 @@ end
 
 function MPB.loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
     loadProblem(m.inner, A, collb, colub, obj, rowlb, rowub)
-    setsense!(m, sense)
+    MPB.setsense!(m, sense)
 end
 
 function MPB.writeproblem(m::CbcMathProgModel, filename::AbstractString)
@@ -146,7 +110,7 @@ MPB.numvar(m::CbcMathProgModel) = getNumCols(m.inner)
 MPB.numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
 
 function MPB.getvartype(m::CbcMathProgModel)
-    ncol = numvar(m)
+    ncol = MPB.numvar(m)
     vartype = fill(:Cont,ncol)
     for i in 1:ncol
         if isInteger(m.inner, i-1)
@@ -160,7 +124,7 @@ function MPB.getvartype(m::CbcMathProgModel)
 end
 
 function MPB.setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
-    ncol = numvar(m)
+    ncol = MPB.numvar(m)
     @assert length(vartype) == ncol
     m.binaries = Int[]
     for i in 1:ncol
@@ -208,7 +172,7 @@ function MPB.getconstrmatrix(m::CbcMathProgModel)
     starts = getVectorStarts(m.inner)
     rowval = getIndices(m.inner)
     nzval = getElements(m.inner)
-    return SparseMatrixCSC(numconstr(m), numvar(m), starts+1, rowval+1, nzval)
+    return SparseMatrixCSC(MPB.numconstr(m), MPB.numvar(m), starts+1, rowval+1, nzval)
 end
 
 MPB.getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
@@ -235,7 +199,7 @@ function MPB.setwarmstart!(m::CbcMathProgModel, v)
 
     # ignore if not feasible
     if m.check_warmstart
-        @assert length(v) == numvar(m)
+        @assert length(v) == MPB.numvar(m)
         l = getColLower(m.inner)
         u = getColUpper(m.inner)
         for i in 1:length(v)
@@ -250,7 +214,7 @@ function MPB.setwarmstart!(m::CbcMathProgModel, v)
         ub = getRowUpper(m.inner)
         A = getconstrmatrix(m)
         rowval = A*v
-        for i in 1:numconstr(m)
+        for i in 1:MPB.numconstr(m)
             if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)
                 return
             end
