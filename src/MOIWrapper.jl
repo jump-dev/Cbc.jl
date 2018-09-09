@@ -1,6 +1,7 @@
 export CbcOptimizer
 
 
+using Compat.SparseArrays
 using MathOptInterface
 using Cbc.CbcCInterface
 
