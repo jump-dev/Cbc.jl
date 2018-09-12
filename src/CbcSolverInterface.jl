@@ -1,39 +1,21 @@
 module CbcMathProgSolverInterface
 
 using Cbc.CbcCInterface
+using Compat.SparseArrays
 
-importall MathProgBase.SolverInterface
+import MathProgBase
+const MPB = MathProgBase
 
+export CbcMathProgModel, CbcSolver
 
-export CbcMathProgModel,
-    CbcSolver,
-    model,
-    loadproblem!,
-    writeproblem,
-    setsense!,
-    getsense,
-    numvar,
-    numconstr,
-    getvartype,
-    setvartype!,
-    optimize!,
-    status,
-    getnodecount,
-    getobjval,
-    getobjgap,
-    getobjbound,
-    getsolution,
-    getrawsolver
-
-
-mutable struct CbcMathProgModel <: AbstractLinearQuadraticModel
+mutable struct CbcMathProgModel <: MPB.AbstractLinearQuadraticModel
     inner::CbcModel
     check_warmstart::Bool
     binaries::Vector{Int} # indices of binary variables
 end
 
-mutable struct CbcSolver <: AbstractMathProgSolver
-    options 
+mutable struct CbcSolver <: MPB.AbstractMathProgSolver
+    options
 end
 CbcSolver(;kwargs...) = CbcSolver(kwargs)
 
@@ -47,20 +29,28 @@ function CbcMathProgModel(;check_warmstart::Bool=true,options...)
     return CbcMathProgModel(c, check_warmstart, Int[])
 end
 
-LinearQuadraticModel(s::CbcSolver) = CbcMathProgModel(;s.options...)
+MPB.LinearQuadraticModel(s::CbcSolver) = CbcMathProgModel(;s.options...)
 
-ConicModel(s::CbcSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
-supportedcones(s::CbcSolver) = [:Free,:Zero,:NonNeg,:NonPos]
+MPB.ConicModel(s::CbcSolver) = MPB.LPQPtoConicBridge(MPB.LinearQuadraticModel(s))
+MPB.supportedcones(s::CbcSolver) = [:Free,:Zero,:NonNeg,:NonPos]
 
-function setparameters!(s::CbcSolver; mpboptions...)
+function MPB.setparameters!(s::CbcSolver; mpboptions...)
     opts = collect(s.options)
     silent = false
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
-            push!(opts, (:seconds,optval))
+            @static if VERSION >= v"0.7-"
+                push!(opts, :seconds => optval)
+            else
+                push!(opts, (:seconds, optval))
+            end
         elseif optname == :Silent
             if optval == true
-                push!(opts, (:logLevel,0))
+                @static if VERSION >= v"0.7-"
+                    push!(opts, :logLevel => 0)
+                else
+                    push!(opts, (:logLevel, 0))
+                end
             end
         else
             error("Unrecognized parameter $optname")
@@ -69,7 +59,7 @@ function setparameters!(s::CbcSolver; mpboptions...)
     s.options = opts
 end
 
-function setparameters!(s::CbcMathProgModel; mpboptions...)
+function MPB.setparameters!(s::CbcMathProgModel; mpboptions...)
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
             setParameter(s.inner, "seconds", string(optval))
@@ -83,12 +73,12 @@ function setparameters!(s::CbcMathProgModel; mpboptions...)
     end
 end
 
-function loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
+function MPB.loadproblem!(m::CbcMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
     loadProblem(m.inner, A, collb, colub, obj, rowlb, rowub)
-    setsense!(m, sense)
+    MPB.setsense!(m, sense)
 end
 
-function writeproblem(m::CbcMathProgModel, filename::AbstractString)
+function MPB.writeproblem(m::CbcMathProgModel, filename::AbstractString)
     if endswith(filename,".mps")
         writeMps(m.inner, filename)
     else
@@ -96,7 +86,7 @@ function writeproblem(m::CbcMathProgModel, filename::AbstractString)
     end
 end
 
-function setsense!(m::CbcMathProgModel,sense)
+function MPB.setsense!(m::CbcMathProgModel,sense)
     @assert sense == :Min || sense == :Max
     if sense == :Min
        setObjSense(m.inner, 1)
@@ -105,7 +95,7 @@ function setsense!(m::CbcMathProgModel,sense)
     end
 end
 
-function getsense(m::CbcMathProgModel)
+function MPB.getsense(m::CbcMathProgModel)
     s = getObjSense(m.inner)
     if s == 1
         return :Min
@@ -116,11 +106,11 @@ function getsense(m::CbcMathProgModel)
     end
 end
 
-numvar(m::CbcMathProgModel) = getNumCols(m.inner)
-numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
+MPB.numvar(m::CbcMathProgModel) = getNumCols(m.inner)
+MPB.numconstr(m::CbcMathProgModel) = getNumRows(m.inner)
 
-function getvartype(m::CbcMathProgModel)
-    ncol = numvar(m)
+function MPB.getvartype(m::CbcMathProgModel)
+    ncol = MPB.numvar(m)
     vartype = fill(:Cont,ncol)
     for i in 1:ncol
         if isInteger(m.inner, i-1)
@@ -133,8 +123,8 @@ function getvartype(m::CbcMathProgModel)
     return vartype
 end
 
-function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
-    ncol = numvar(m)
+function MPB.setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
+    ncol = MPB.numvar(m)
     @assert length(vartype) == ncol
     m.binaries = Int[]
     for i in 1:ncol
@@ -151,7 +141,7 @@ function setvartype!(m::CbcMathProgModel,vartype::Vector{Symbol})
     end
 end
 
-function optimize!(m::CbcMathProgModel)
+function MPB.optimize!(m::CbcMathProgModel)
     lb = getColLower(m.inner)
     ub = getColUpper(m.inner)
     # tighten bounds on binaries
@@ -162,7 +152,7 @@ function optimize!(m::CbcMathProgModel)
     solve(m.inner)
 end
 
-function status(m::CbcMathProgModel)
+function MPB.status(m::CbcMathProgModel)
     if isProvenOptimal(m.inner)
         return :Optimal
     elseif isProvenInfeasible(m.inner)
@@ -178,30 +168,30 @@ function status(m::CbcMathProgModel)
     end
 end
 
-function getconstrmatrix(m::CbcMathProgModel)
+function MPB.getconstrmatrix(m::CbcMathProgModel)
     starts = getVectorStarts(m.inner)
     rowval = getIndices(m.inner)
     nzval = getElements(m.inner)
-    return SparseMatrixCSC(numconstr(m), numvar(m), starts+1, rowval+1, nzval)
+    return SparseMatrixCSC(MPB.numconstr(m), MPB.numvar(m), starts+1, rowval+1, nzval)
 end
 
-getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
+MPB.getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
 
-getobjbound(m::CbcMathProgModel) = getBestPossibleObjValue(m.inner)
+MPB.getobjbound(m::CbcMathProgModel) = getBestPossibleObjValue(m.inner)
 
-function getobjgap(m::CbcMathProgModel)
+function MPB.getobjgap(m::CbcMathProgModel)
     b = getBestPossibleObjValue(m.inner)
     f = getObjValue(m.inner)
     return abs(b-f)/abs(f)
 end
 
-getnodecount(m::CbcMathProgModel) = getNodeCount(m.inner)
+MPB.getnodecount(m::CbcMathProgModel) = getNodeCount(m.inner)
 
-getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
+MPB.getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 
-getrawsolver(m::CbcMathProgModel) = m.inner
+MPB.getrawsolver(m::CbcMathProgModel) = m.inner
 
-function setwarmstart!(m::CbcMathProgModel, v)
+function MPB.setwarmstart!(m::CbcMathProgModel, v)
     if any(isnan, v)
         Base.warn_once("Ignoring partial starting solution. Cbc requires a feasible value to be specified for all variables.")
         return
@@ -209,7 +199,7 @@ function setwarmstart!(m::CbcMathProgModel, v)
 
     # ignore if not feasible
     if m.check_warmstart
-        @assert length(v) == numvar(m)
+        @assert length(v) == MPB.numvar(m)
         l = getColLower(m.inner)
         u = getColUpper(m.inner)
         for i in 1:length(v)
@@ -224,7 +214,7 @@ function setwarmstart!(m::CbcMathProgModel, v)
         ub = getRowUpper(m.inner)
         A = getconstrmatrix(m)
         rowval = A*v
-        for i in 1:numconstr(m)
+        for i in 1:MPB.numconstr(m)
             if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)
                 return
             end
@@ -233,12 +223,12 @@ function setwarmstart!(m::CbcMathProgModel, v)
     setInitialSolution(m.inner, v)
 end
 
-function addsos1!(m::CbcMathProgModel, idx, weight::Vector{Float64})
+function MPB.addsos1!(m::CbcMathProgModel, idx, weight::Vector{Float64})
     idxc = convert(Vector{Cint}, idx)
     addSOS(m.inner, 1, Cint[1,length(idx)+1], idxc, weight, 1)
 end
 
-function addsos2!(m::CbcMathProgModel, idx, weight::Vector{Float64})
+function MPB.addsos2!(m::CbcMathProgModel, idx, weight::Vector{Float64})
     idxc = convert(Vector{Cint}, idx)
     addSOS(m.inner, 1, Cint[1,length(idx)+1], idxc, weight, 2)
 end
