@@ -230,15 +230,11 @@ function MOI.copy_to(cbc_optimizer::CbcOptimizer,
                 update_integer_indices(user_optimizer, mapping, ci, 
                                        integer_indices)
             end
-        else
-            ## Update conmap for (F,S) for F != MOI.SingleVariable
-            ## Single variables are treated by bounds in Cbc, so no
-            ## need to add a row
-            for i in 1:length(ci)
-                mapping.conmap[ci[i]] = MOI.ConstraintIndex{F,S}(num_rows + i)
-            end
-            num_rows += MOI.get(user_optimizer, MOI.NumberOfConstraints{F,S}())
         end
+        for i in 1:length(ci)
+            mapping.conmap[ci[i]] = MOI.ConstraintIndex{F,S}(num_rows + i)
+        end
+        num_rows += MOI.get(user_optimizer, MOI.NumberOfConstraints{F,S}())
     end
 
     cbc_model_format = CbcModelFormat(num_rows, num_cols)
@@ -317,7 +313,7 @@ function MOI.empty!(cbc_optimizer::CbcOptimizer)
 end
 
 
-Function MOI.set(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
+function MOI.set(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     if sense == MOI.MaxSense
         CbcCI.setObjSense(cbc_optimizer.inner, -1)
     else ## Other senses are set as minimization (cbc default)

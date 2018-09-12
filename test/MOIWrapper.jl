@@ -17,7 +17,8 @@ const MOIB = MathOptInterface.Bridges
     "linear10", ## asks for ConstraintPrimal
     "linear13", ## asks for ConstraintPrimal
     "linear14", ## asks for ConstraintPrimal
-    "linear11"  ## fails due to a bug in Clp.
+    "linear11", ## fails due to a bug in Clp.
+    "linear15"  ## uses vector of constraints
     ])
 end
 
