@@ -170,36 +170,57 @@ function update_bounds_for_binary_vars!(col_lb::Vector{Float64},
     end
 end
 
-function update_zeroone_indices(user_optimizer::MOI.ModelLike, 
-                                mapping::MOIU.IndexMap, 
-                                ci::Vector{MOI.ConstraintIndex{F,S}}, 
-                                zero_one_indices::Vector{Int}) where {F, S}
-                                
+function update_indices(user_optimizer::MOI.ModelLike, 
+                        mapping::MOIU.IndexMap, 
+                        ci::Vector{MOI.ConstraintIndex{F,S}}, 
+                        list_of_indices::Vector{Int}) where {F, S}
+    
     for i in 1:length(ci)
         f = MOI.get(user_optimizer, MOI.ConstraintFunction(), ci[i])
-        push!(zero_one_indices, mapping.varmap[f.variable].value)
+        push!(list_of_indices, mapping.varmap[f.variable].value)
     end
 end
 
-function update_integer_indices(user_optimizer::MOI.ModelLike, 
-                                mapping::MOIU.IndexMap,
-                                ci::Vector{MOI.ConstraintIndex{F,S}}, 
-                                integer_indices::Vector{Int}) where {F, S}
-                                
-    for i in 1:length(ci)
-        f = MOI.get(user_optimizer, MOI.ConstraintFunction(), ci[i])
-        push!(integer_indices, mapping.varmap[f.variable].value)
+function create_indices_for_bounds(user_optimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
+                                   zeroone_indices::Vector{Int}, integer_indices::Vector{Int})
+    indices = MOI.ConstraintIndex[]
+    num_bounds = 0
+    list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
+    for (F,S) in list_of_constraints
+        if F == MOI.SingleVariable
+            list_of_ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
+            if S == MOI.ZeroOne
+                update_indices(user_optimizer, mapping, list_of_ci, zeroone_indices)
+            elseif S == MOI.Integer
+                update_indices(user_optimizer, mapping, list_of_ci, integer_indices)
+            end
+            for i in 1:length(list_of_ci)
+                mapping.conmap[list_of_ci[i]] = MOI.ConstraintIndex{F,S}(num_bounds + i)
+            end
+            num_bounds += MOI.get(user_optimizer, MOI.NumberOfConstraints{F,S}())
+        end
     end
 end
 
-"""
-    function copy_to(cbc_optimizer, user_optimizer; copy_names=false)
+function create_indices_for_rows(cbc_optimizer::CbcOptimizer, user_optimizer::MOI.ModelLike,
+                                 mapping::MOIU.IndexMap)
+    list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
+    num_rows = 0
+    indices = MOI.ConstraintIndex[]
+    for (F,S) in list_of_constraints
+        if !(MOI.supports_constraint(cbc_optimizer, F, S))
+            throw(MOI.UnsupportedConstraint{F,S}("Cbc MOI Interface does not support constraints of type " * (F,S) * "."))
+        end
+        if F != MOI.SingleVariable
+            list_of_ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
+            for i in 1:length(list_of_ci)
+                mapping.conmap[list_of_ci[i]] = MOI.ConstraintIndex{F,S}(num_rows + i)
+            end
+            num_rows += MOI.get(user_optimizer, MOI.NumberOfConstraints{F,S}())
+        end
+    end
+end
 
-Receive a cbc_optimizer which contains the pointer to the cbc C object and 
-instantiate the object cbc_model_format::CbcModelFormat based on 
-user_optimizer::AbstractModel (also provided by the user). Function loadProblem 
-of CbcCInterface requires all information stored in cbc_model_format.
-"""
 function MOI.copy_to(cbc_optimizer::CbcOptimizer,
     user_optimizer::MOI.ModelLike; copy_names=false)
 
@@ -213,36 +234,15 @@ function MOI.copy_to(cbc_optimizer::CbcOptimizer,
 
     zero_one_indices = Int[]
     integer_indices = Int[]
-    list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
-    num_rows = 0
-    for (F,S) in list_of_constraints
-        if !(MOI.supports_constraint(cbc_optimizer, F, S))
-            throw(MOI.UnsupportedConstraint{F,S}("Cbc MOI Interface does not support constraints of type " * (F,S) * "."))
-        end
-
-        ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
-
-        if F == MOI.SingleVariable
-            if S == MOI.ZeroOne
-                update_zeroone_indices(user_optimizer, mapping, ci, 
-                                       zero_one_indices)
-            elseif S == MOI.Integer
-                update_integer_indices(user_optimizer, mapping, ci, 
-                                       integer_indices)
-            end
-        end
-        for i in 1:length(ci)
-            mapping.conmap[ci[i]] = MOI.ConstraintIndex{F,S}(num_rows + i)
-        end
-        num_rows += MOI.get(user_optimizer, MOI.NumberOfConstraints{F,S}())
-    end
+    create_indices_for_rows(cbc_optimizer, user_optimizer, mapping) # Updates mapping
+    num_rows = length(mapping.conmap)
+    # Do not create rows for bounds, but has to update mapping
+    create_indices_for_bounds(user_optimizer, mapping, zero_one_indices, integer_indices)
 
     cbc_model_format = CbcModelFormat(num_rows, num_cols)
-
     copy_constraints!(cbc_model_format, user_optimizer, mapping)
     update_bounds_for_binary_vars!(cbc_model_format.col_lb, 
                                    cbc_model_format.col_ub, zero_one_indices)
-
 
     ## Copy objective function
     objF = MOI.get(user_optimizer, 
