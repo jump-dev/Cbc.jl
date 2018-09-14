@@ -181,8 +181,11 @@ function update_indices(user_optimizer::MOI.ModelLike,
     end
 end
 
+# This function creates MOI.ConstraintIndexs for MOI.SingleVariable constraints
+# and updates the mapping with such indices. SingleVariables are seen as bounds by Cbc
+# This function also updates the vectors zero_one_indices and integer_indices
 function create_indices_for_bounds(user_optimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
-                                   zeroone_indices::Vector{Int}, integer_indices::Vector{Int})
+                                   zero_one_indices::Vector{Int}, integer_indices::Vector{Int})
     indices = MOI.ConstraintIndex[]
     num_bounds = 0
     list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
@@ -190,7 +193,7 @@ function create_indices_for_bounds(user_optimizer::MOI.ModelLike, mapping::MOIU.
         if F == MOI.SingleVariable
             list_of_ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
             if S == MOI.ZeroOne
-                update_indices(user_optimizer, mapping, list_of_ci, zeroone_indices)
+                update_indices(user_optimizer, mapping, list_of_ci, zero_one_indices)
             elseif S == MOI.Integer
                 update_indices(user_optimizer, mapping, list_of_ci, integer_indices)
             end
@@ -202,6 +205,8 @@ function create_indices_for_bounds(user_optimizer::MOI.ModelLike, mapping::MOIU.
     end
 end
 
+# This function creates MOI.ConstraintIndex's for constraints that are not
+# MOI.SingleVariable constraints and updates the mapping with such indices
 function create_indices_for_rows(cbc_optimizer::CbcOptimizer, user_optimizer::MOI.ModelLike,
                                  mapping::MOIU.IndexMap)
     list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
@@ -236,7 +241,7 @@ function MOI.copy_to(cbc_optimizer::CbcOptimizer,
     integer_indices = Int[]
     create_indices_for_rows(cbc_optimizer, user_optimizer, mapping) # Updates mapping
     num_rows = length(mapping.conmap)
-    # Do not create rows for bounds, but has to update mapping
+    # Rows are not created for bounds, but the mapping is still updated.
     create_indices_for_bounds(user_optimizer, mapping, zero_one_indices, integer_indices)
 
     cbc_model_format = CbcModelFormat(num_rows, num_cols)
