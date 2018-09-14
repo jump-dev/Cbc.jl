@@ -133,8 +133,8 @@ end
 function load_obj(cbc_model_format::CbcModelFormat, mapping::MOIU.IndexMap,
     f::MOI.ScalarAffineFunction)
     # We need to increment values of objective function with += to handle 
-    # cases like $x_1 + x_2 + x_1$. This is safe becasue objective function 
-    # is initialized with zeros in the constructor
+    # cases like $x_1 + x_2 + x_1$. This is safe because objective function 
+    # is initialized with zeros in the constructor.
     for term in f.terms
         cbc_model_format.obj[mapping.varmap[term.variable_index].value] += 
             term.coefficient
@@ -181,9 +181,9 @@ function update_indices(user_optimizer::MOI.ModelLike,
     end
 end
 
-# This function creates MOI.ConstraintIndexs for MOI.SingleVariable constraints
-# and updates the mapping with such indices. SingleVariables are seen as bounds by Cbc
-# This function also updates the vectors zero_one_indices and integer_indices
+# This function creates MOI.ConstraintIndexes for MOI.SingleVariable constraints
+# and updates the mapping with such indices. SingleVariables are seen as bounds by Cbc.
+# This function also updates the vectors zero_one_indices and integer_indices.
 function create_indices_for_bounds(user_optimizer::MOI.ModelLike, mapping::MOIU.IndexMap,
                                    zero_one_indices::Vector{Int}, integer_indices::Vector{Int})
     indices = MOI.ConstraintIndex[]
@@ -206,7 +206,7 @@ function create_indices_for_bounds(user_optimizer::MOI.ModelLike, mapping::MOIU.
 end
 
 # This function creates MOI.ConstraintIndex's for constraints that are not
-# MOI.SingleVariable constraints and updates the mapping with such indices
+# MOI.SingleVariable constraints and updates the mapping with such indices.
 function create_indices_for_rows(cbc_optimizer::CbcOptimizer, user_optimizer::MOI.ModelLike,
                                  mapping::MOIU.IndexMap)
     list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
@@ -249,14 +249,14 @@ function MOI.copy_to(cbc_optimizer::CbcOptimizer,
     update_bounds_for_binary_vars!(cbc_model_format.col_lb, 
                                    cbc_model_format.col_ub, zero_one_indices)
 
-    ## Copy objective function
+    # Copy the objective function.
     objF = MOI.get(user_optimizer, 
                    MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     load_obj(cbc_model_format, mapping, objF)
     sense = MOI.get(user_optimizer, MOI.ObjectiveSense())
     MOI.set(cbc_optimizer, MOI.ObjectiveSense(), sense)
 
-    ## Load the problem to Cbc
+    # Load the problem into Cbc.
     CbcCI.loadProblem(cbc_optimizer.inner, 
                       sparse(cbc_model_format.row_idx, cbc_model_format.col_idx,
                              cbc_model_format.values, cbc_model_format.num_rows,
@@ -269,7 +269,7 @@ function MOI.copy_to(cbc_optimizer::CbcOptimizer,
     empty!(cbc_model_format.col_idx)
     empty!(cbc_model_format.values)    
 
-    ## Set integer variables
+    ## Set the integer variables.
     for idx in vcat(integer_indices, zero_one_indices)
         CbcCI.setInteger(cbc_optimizer.inner, idx-1)
     end
@@ -282,10 +282,6 @@ function MOI.optimize!(cbc_optimizer::CbcOptimizer)
     # Call solve function
     CbcCI.solve(cbc_optimizer.inner)
 end
-
-
-
-## canadd, canset, canget functions
 
 function MOI.add_variable(cbc_optimizer::CbcOptimizer)
     throw(MOI.AddVariableNotAllowed())
