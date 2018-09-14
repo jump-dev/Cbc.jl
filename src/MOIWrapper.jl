@@ -153,13 +153,13 @@ function update_integer_indices(user_optimizer::MOI.ModelLike, mapping::MOIU.Ind
 end
 
 """
-    function copy!(cbc_optimizer, user_optimizer; copynames=false)
+    function copy_to(cbc_optimizer, user_optimizer; copy_names=false)
 
 Receive a cbc_optimizer which contains the pointer to the cbc C object and instantiate the object cbc_model_format::CbcModelFormat based on user_optimizer::AbstractModel (also provided by the user).
 Function loadProblem of CbcCInterface requires all information stored in cbc_model_format.
 """
-function MOI.copy!(cbc_optimizer::CbcOptimizer,
-    user_optimizer::MOI.ModelLike; copynames=false)
+function MOI.copy_to(cbc_optimizer::CbcOptimizer,
+    user_optimizer::MOI.ModelLike; copy_names=false)
 
     mapping = MOIU.IndexMap()
 
@@ -174,9 +174,8 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
     list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
     num_rows = 0
     for (F,S) in list_of_constraints
-        if !(MOI.supportsconstraint(cbc_optimizer, F, S))
-            return MOI.CopyResult(MOI.CopyUnsupportedConstraint,
-            "Cbc MOI Interface does not support constraints of type " * (F,S) * ".", nothing)
+        if !(MOI.supports_constraint(cbc_optimizer, F, S))
+            throw(MOI.UnsupportedConstraint{F,S}("Cbc MOI Interface does not support constraints of type " * (F,S) * "."))
         end
 
         ci = MOI.get(user_optimizer, MOI.ListOfConstraintIndices{F,S}())
@@ -208,7 +207,7 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
     objF = MOI.get(user_optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     load_obj(cbc_model_format, mapping, objF)
     sense = MOI.get(user_optimizer, MOI.ObjectiveSense())
-    MOI.set!(cbc_optimizer, MOI.ObjectiveSense(), sense)
+    MOI.set(cbc_optimizer, MOI.ObjectiveSense(), sense)
 
     ## Load the problem to Cbc
     CbcCI.loadProblem(cbc_optimizer.inner, sparse(cbc_model_format.row_idx, cbc_model_format.col_idx,
@@ -226,7 +225,7 @@ function MOI.copy!(cbc_optimizer::CbcOptimizer,
         CbcCI.setInteger(cbc_optimizer.inner, idx-1)
     end
 
-    return MOI.CopyResult(MOI.CopySuccess, "Model was copied succefully.", MOIU.IndexMap(mapping.varmap, mapping.conmap))
+    return MOIU.IndexMap(mapping.varmap, mapping.conmap)
 end
 
 
@@ -239,22 +238,24 @@ end
 
 ## canadd, canset, canget functions
 
-function MOI.canaddvariable(cbc_optimizer::CbcOptimizer)
-    return false
+function MOI.add_variable(cbc_optimizer::CbcOptimizer)
+    throw(MOI.AddVariableNotAllowed())
 end
 
 ## supports constraints
 
 
-MOI.supportsconstraint(::CbcOptimizer, ::Type{<:Union{MOI.ScalarAffineFunction{Float64}, MOI.SingleVariable}},
+MOI.supports_constraint(::CbcOptimizer, ::Type{<:Union{MOI.ScalarAffineFunction{Float64}, MOI.SingleVariable}},
 ::Type{<:Union{MOI.EqualTo{Float64}, MOI.Interval{Float64}, MOI.LessThan{Float64},
 MOI.GreaterThan{Float64}, MOI.ZeroOne, MOI.Integer}}) = true
 
 MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
 
+MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense) = true
+
 ## Set functions
 
-function MOI.write(cbc_optimizer::CbcOptimizer, filename::String)
+function MOI.write_to_file(cbc_optimizer::CbcOptimizer, filename::String)
     if !endswith("filename", "mps")
         error("CbcOptimizer only supports writing .mps files")
     else
@@ -269,7 +270,7 @@ function MOI.empty!(cbc_optimizer::CbcOptimizer)
 end
 
 
-function MOI.set!(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
+function MOI.set(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     if sense == MOI.MaxSense
         CbcCI.setObjSense(cbc_optimizer.inner, -1)
     else ## Other senses are set as minimization (cbc default)
@@ -280,22 +281,7 @@ end
 
 ## Get functions
 
-
-function MOI.canget(cbc_optimizer::CbcOptimizer, object::MOI.PrimalStatus)
-    if object.N != 1
-        return false
-    end
-    return MOI.get(cbc_optimizer, MOI.ResultCount()) == 1
-end
-
-
-MOI.canget(cbc_optimizer::CbcOptimizer, object::Union{MOI.NodeCount, MOI.ResultCount,
-MOI.TerminationStatus, MOI.ObjectiveSense, MOI.ObjectiveValue, MOI.ObjectiveBound, MOI.NumberOfVariables}) = true
-
-MOI.canget(cbc_optimizer::CbcOptimizer, object::MOI.VariablePrimal, indexTypeOrObject::Type{MOI.VariableIndex}) = true
-
-
-function MOI.isempty(cbc_optimizer::CbcOptimizer)
+function MOI.is_empty(cbc_optimizer::CbcOptimizer)
     return (CbcCI.getNumCols(cbc_optimizer.inner) == 0 && CbcCI.getNumRows(cbc_optimizer.inner) == 0)
 end
 
