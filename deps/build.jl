@@ -1,4 +1,5 @@
 using BinDeps
+import Compat.Libdl
 import Compat.Sys
 
 @BinDeps.setup
