@@ -5,7 +5,7 @@ const MOIT = MathOptInterface.Test
 const MOIU = MathOptInterface.Utilities
 const MOIB = MathOptInterface.Bridges
 
-@MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () ()
+@MOIU.model ModelForCachingOptimizer (MOI.ZeroOne, MOI.Integer) (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval) () () (MOI.SingleVariable,) (MOI.ScalarAffineFunction,) () ()
 
 @testset "Continuous linear problems" begin
     optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), CbcOptimizer())
@@ -17,7 +17,8 @@ const MOIB = MathOptInterface.Bridges
     "linear10", ## asks for ConstraintPrimal
     "linear13", ## asks for ConstraintPrimal
     "linear14", ## asks for ConstraintPrimal
-    "linear11"  ## fails due to a bug in Clp.
+    "linear11", ## asks for ConstraintPrimal
+    "linear15"  ## uses vector of constraints
     ])
 end
 
@@ -67,12 +68,13 @@ end
         "solve_affine_interval", ## cannot get with strings
         "solve_affine_greaterthan", ## cannot get with strings
         "solve_with_upperbound",  ## cannot get with strings
-        "getvariable",  ## cannot get with strings
         "solve_singlevariable_obj", ## cannot get with strings
         "solve_affine_equalto",  ## cannot get with strings
-        "getconstraint", ## cannot get constraint
         "solve_affine_lessthan",  ## cannot get with strings
         "solve_constant_obj",  ## cannot get with strings
-        "solve_affine_deletion_edge_cases" ## do not support vector of constraints
+        "solve_affine_deletion_edge_cases", ## do not support vector of constraints
+        ## TODO: fix new tests of objective edge cases
+        "solve_duplicate_terms_obj", 
+        "solve_objbound_edge_cases"
     ])
 end
