@@ -212,7 +212,7 @@ function MPB.setwarmstart!(m::CbcMathProgModel, v)
         end
         lb = getRowLower(m.inner)
         ub = getRowUpper(m.inner)
-        A = getconstrmatrix(m)
+        A = MPB.getconstrmatrix(m)
         rowval = A*v
         for i in 1:MPB.numconstr(m)
             if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)

@@ -296,8 +296,8 @@ function addSOS(prob::CbcModel, numRows::Integer, rowStarts::Vector{Cint},
 
     @cbc_ccall(addSOS,Cvoid,(Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint},
                             Ptr{Float64}, Cint),prob.p,numRows,
-                            rowStarts-convert(Cint,1),
-                            colIndices-convert(Cint,1),
+                            rowStarts .- convert(Cint,1),
+                            colIndices .- convert(Cint,1),
                             weights, typ)
 
 end
