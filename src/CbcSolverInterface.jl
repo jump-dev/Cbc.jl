@@ -172,7 +172,8 @@ function MPB.getconstrmatrix(m::CbcMathProgModel)
     starts = getVectorStarts(m.inner)
     rowval = getIndices(m.inner)
     nzval = getElements(m.inner)
-    return SparseMatrixCSC(MPB.numconstr(m), MPB.numvar(m), starts+1, rowval+1, nzval)
+    return SparseMatrixCSC(MPB.numconstr(m), MPB.numvar(m), starts .+ 1,
+                           rowval .+ 1, nzval)
 end
 
 MPB.getobjval(m::CbcMathProgModel) = getObjValue(m.inner)
