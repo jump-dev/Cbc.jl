@@ -1,13 +1,33 @@
-Cbc.jl
-=========
+# COIN-OR Branch and Cut Interface (Cbc.jl)
+
+[![](https://www.coin-or.org/wordpress/wp-content/uploads/2014/08/COINOR.png)](https://www.coin-or.org)
+
+`Cbc.jl` is an interface to the **[COIN-OR Branch and Cut](https://projects.coin-or.org/Cbc)**
+solver. It provides a complete interface to the low-level C API, as well as an
+implementation of the solver-independent `MathProgBase` and `MathOptInterface`
+API's.   
+
+*Note: This wrapper is maintained by the JuliaOpt community and is not a COIN-OR
+project.*
+
 
 [![Build Status](https://travis-ci.org/JuliaOpt/Cbc.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/Cbc.jl)
 
 [![Cbc](http://pkg.julialang.org/badges/Cbc_0.6.svg)](http://pkg.julialang.org/?pkg=Cbc&ver=0.6)
 
-This is a Julia interface to the mixed-integer linear programming solver **[Cbc]**. Cbc is a high-performance open-source solver. A basic high-level ``mixintprog`` interface is provided through the **[MathProgBase]** package.
+## Installation
 
-The supported platforms are Linux, OS X, and Windows. Binaries are provided for Windows and OS X, and will be installed by default. On Linux, Cbc will be automatically compiled from source. Ensure that a C++ compiler is installed first; on Debian-based systems, install the ``build-essential`` package.
+The package is registered in `METADATA.jl` and so can be installed with
+`Pkg.add`.
+
+```
+julia> Pkg.add("Cbc")
+```
+
+The supported platforms are Linux, OS X, and Windows. Binaries are provided for
+Windows and OS X, and will be installed by default. On Linux, Cbc will be
+automatically compiled from source. Ensure that a C++ compiler is installed
+first; on Debian-based systems, install the ``build-essential`` package.
 
 ### Using with **[MathProgBase]**
 
