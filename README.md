@@ -1,6 +1,6 @@
 # COIN-OR Branch and Cut Interface (Cbc.jl)
 
-![](https://www.coin-or.org/wordpress/wp-content/uploads/2014/08/COINOR.png)
+[![](https://www.coin-or.org/wordpress/wp-content/uploads/2014/08/COINOR.png)](https://www.coin-or.org)
 
 `Cbc.jl` is an interface to the **[COIN-OR Branch and Cut](https://projects.coin-or.org/Cbc)**
 solver. It provides a complete interface to the low-level C API, as well as an
