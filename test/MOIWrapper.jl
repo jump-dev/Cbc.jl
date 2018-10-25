@@ -1,4 +1,5 @@
-using Compat.Test, MathOptInterface, MathOptInterface.Test, MathOptInterface.Utilities
+using Compat, Compat.Test
+using MathOptInterface, MathOptInterface.Test, MathOptInterface.Utilities
 
 const MOI  = MathOptInterface
 const MOIT = MathOptInterface.Test
