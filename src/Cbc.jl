@@ -11,7 +11,7 @@ end
 
 
 include("CbcCInterface.jl")
-include("CbcSolverInterface.jl")
+include("MPBWrapper.jl")
 include("MOIWrapper.jl")
 
 using Cbc.CbcMathProgSolverInterface
