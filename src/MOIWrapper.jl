@@ -1,6 +1,3 @@
-export CbcOptimizer
-
-
 using Compat.SparseArrays
 using MathOptInterface
 using Cbc.CbcCInterface
@@ -9,9 +6,9 @@ const MOI = MathOptInterface
 const MOIU = MathOptInterface.Utilities
 const CbcCI = CbcCInterface
 
-mutable struct CbcOptimizer <: MOI.AbstractOptimizer
+mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcModel
-    CbcOptimizer() = new(CbcModel()) # Initializes with an empty model
+    Optimizer() = new(CbcModel()) # Initializes with an empty model
 end
 
 struct CbcModelFormat
@@ -207,7 +204,7 @@ end
 
 # This function creates MOI.ConstraintIndex's for constraints that are not
 # MOI.SingleVariable constraints and updates the mapping with such indices.
-function create_indices_for_rows(cbc_optimizer::CbcOptimizer, user_optimizer::MOI.ModelLike,
+function create_indices_for_rows(cbc_optimizer::Optimizer, user_optimizer::MOI.ModelLike,
                                  mapping::MOIU.IndexMap)
     list_of_constraints = MOI.get(user_optimizer, MOI.ListOfConstraints())
     num_rows = 0
@@ -226,7 +223,7 @@ function create_indices_for_rows(cbc_optimizer::CbcOptimizer, user_optimizer::MO
     end
 end
 
-function MOI.copy_to(cbc_optimizer::CbcOptimizer,
+function MOI.copy_to(cbc_optimizer::Optimizer,
     user_optimizer::MOI.ModelLike; copy_names=false)
 
     mapping = MOIU.IndexMap()
@@ -278,43 +275,43 @@ function MOI.copy_to(cbc_optimizer::CbcOptimizer,
 end
 
 
-function MOI.optimize!(cbc_optimizer::CbcOptimizer)
+function MOI.optimize!(cbc_optimizer::Optimizer)
     # Call solve function
     CbcCI.solve(cbc_optimizer.inner)
 end
 
-function MOI.add_variable(cbc_optimizer::CbcOptimizer)
+function MOI.add_variable(cbc_optimizer::Optimizer)
     throw(MOI.AddVariableNotAllowed())
 end
 
 ## supports constraints
 
 
-MOI.supports_constraint(::CbcOptimizer, ::Type{<:Union{MOI.ScalarAffineFunction{Float64}, MOI.SingleVariable}},
+MOI.supports_constraint(::Optimizer, ::Type{<:Union{MOI.ScalarAffineFunction{Float64}, MOI.SingleVariable}},
 ::Type{<:Union{MOI.EqualTo{Float64}, MOI.Interval{Float64}, MOI.LessThan{Float64},
 MOI.GreaterThan{Float64}, MOI.ZeroOne, MOI.Integer}}) = true
 
-MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
+MOI.supports(cbc_optimizer::Optimizer, object::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
 
-MOI.supports(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense) = true
+MOI.supports(cbc_optimizer::Optimizer, object::MOI.ObjectiveSense) = true
 
 ## Set functions
 
-function MOI.write_to_file(cbc_optimizer::CbcOptimizer, filename::String)
+function MOI.write_to_file(cbc_optimizer::Optimizer, filename::String)
     if !endswith("filename", "mps")
-        error("CbcOptimizer only supports writing .mps files")
+        error("Optimizer only supports writing .mps files")
     else
         writeMps(cbc_optimizer.inner, filename)
     end
 end
 
 # empty!
-function MOI.empty!(cbc_optimizer::CbcOptimizer)
+function MOI.empty!(cbc_optimizer::Optimizer)
     cbc_optimizer.inner = CbcModel()
 end
 
 
-function MOI.set(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
+function MOI.set(cbc_optimizer::Optimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     if sense == MOI.MaxSense
         CbcCI.setObjSense(cbc_optimizer.inner, -1)
     else ## Other senses are set as minimization (cbc default)
@@ -324,41 +321,41 @@ end
 
 ## Get functions
 
-function MOI.is_empty(cbc_optimizer::CbcOptimizer)
+function MOI.is_empty(cbc_optimizer::Optimizer)
     return (CbcCI.getNumCols(cbc_optimizer.inner) == 0 && CbcCI.getNumRows(cbc_optimizer.inner) == 0)
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.NumberOfVariables)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.NumberOfVariables)
     return getNumCols(cbc_optimizer.inner)
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveBound) 
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.ObjectiveBound) 
     return CbcCI.getBestPossibleObjValue(cbc_optimizer.inner)
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.NodeCount)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.NodeCount)
     return CbcCI.getNodeCount(cbc_optimizer.inner)
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveValue)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.ObjectiveValue)
     return CbcCI.getObjValue(cbc_optimizer.inner)
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.VariablePrimal, 
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.VariablePrimal, 
                  ref::MOI.VariableIndex)
                  
     variablePrimals = CbcCI.getColSolution(cbc_optimizer.inner)
     return variablePrimals[ref.value]
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.VariablePrimal, 
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.VariablePrimal, 
                  ref::Vector{MOI.VariableIndex})
                  
     variablePrimals = CbcCI.getColSolution(cbc_optimizer.inner)
     return [variablePrimals[vi.value] for vi in ref]
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.ResultCount)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.ResultCount)
     if (isProvenInfeasible(cbc_optimizer.inner) || 
         isContinuousUnbounded(cbc_optimizer.inner) || 
         isAbandoned(cbc_optimizer.inner) || 
@@ -369,12 +366,12 @@ function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.ResultCount)
     return 1
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.ObjectiveSense)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.ObjectiveSense)
     CbcCI.getObjSense(cbc_optimizer.inner) == 1 && return MOI.MinSense
     CbcCI.getObjSense(cbc_optimizer.inner) == -1 && return MOI.MaxSense
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.TerminationStatus)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.TerminationStatus)
 
     if isProvenInfeasible(cbc_optimizer.inner)
         return MOI.InfeasibleNoResult
@@ -398,7 +395,7 @@ function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.TerminationStatus)
 
 end
 
-function MOI.get(cbc_optimizer::CbcOptimizer, object::MOI.PrimalStatus)
+function MOI.get(cbc_optimizer::Optimizer, object::MOI.PrimalStatus)
     if isProvenOptimal(cbc_optimizer.inner) || isInitialSolveProvenOptimal(cbc_optimizer.inner)
         return MOI.FeasiblePoint
     elseif isProvenInfeasible(cbc_optimizer.inner)
