@@ -1,9 +1,9 @@
-using Compat.Test, MathOptInterface, MathOptInterface.Test, MathOptInterface.Utilities
+using Compat.Test, MathOptInterface
 
 const MOI  = MathOptInterface
-const MOIT = MathOptInterface.Test
-const MOIU = MathOptInterface.Utilities
-const MOIB = MathOptInterface.Bridges
+const MOIT = MOI.Test
+const MOIU = MOI.Utilities
+const MOIB = MOI.Bridges
 
 @MOIU.model ModelForCachingOptimizer (MOI.ZeroOne, MOI.Integer) (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval) () () (MOI.SingleVariable,) (MOI.ScalarAffineFunction,) () ()
 
