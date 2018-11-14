@@ -8,7 +8,7 @@ const MOIB = MOI.Bridges
 @MOIU.model ModelForCachingOptimizer (MOI.ZeroOne, MOI.Integer) (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval) () () (MOI.SingleVariable,) (MOI.ScalarAffineFunction,) () ()
 
 @testset "Continuous linear problems" begin
-    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), CbcOptimizer())
+    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), Cbc.Optimizer())
     config = MOIT.TestConfig(atol=1e-4, rtol=1e-4, duals = false, infeas_certificates = false)
     MOIT.contlineartest(optimizer, config, [
     "linear1",  ## asks for ConstraintPrimal
@@ -24,7 +24,7 @@ end
 
 @testset "Integer linear tests" begin
 
-    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), CbcOptimizer())
+    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), Cbc.Optimizer())
     config = MOIT.TestConfig(atol=1e-4, rtol=1e-4, duals = false, infeas_certificates = false)
     # int1 excluded because asks for ConstraintPrimal
     # int2 excluded because uses vector of constraints
@@ -34,7 +34,7 @@ end
 
 
 @testset "ModelLike tests" begin
-    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), CbcOptimizer())
+    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), Cbc.Optimizer())
 
     # MOIT.nametest(optimizer) ## uses names/strings
     # @testset "validtest" begin ## at some moment inside the test it asks for the number of constraints of a type that is not supported by my model and caching optimizer returns an error. I cannot return the number of constraints of a specific type
@@ -56,7 +56,7 @@ end
 
 @testset "Unit Tests" begin
     config = MOIT.TestConfig()
-    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), CbcOptimizer())
+    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), Cbc.Optimizer())
 
     MOIT.basic_constraint_tests(optimizer, config)
 
