@@ -8,7 +8,15 @@ const CbcCI = CbcCInterface
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcModel
-    Optimizer() = new(CbcModel()) # Initializes with an empty model
+    Optimizer(::Nothing) = new(CbcModel()) # Initializes with an empty model
+end
+
+function Optimizer(;kwargs...)        
+    model = Optimizer(nothing)
+    for (name,value) in kwargs
+        setParameter(model.inner, string(name), string(value))
+    end
+    return model
 end
 
 struct CbcModelFormat
