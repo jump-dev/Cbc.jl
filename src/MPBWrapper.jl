@@ -35,7 +35,7 @@ MPB.ConicModel(s::CbcSolver) = MPB.LPQPtoConicBridge(MPB.LinearQuadraticModel(s)
 MPB.supportedcones(s::CbcSolver) = [:Free,:Zero,:NonNeg,:NonPos]
 
 function MPB.setparameters!(s::CbcSolver; mpboptions...)
-    opts = collect(s.options)
+    opts = collect(Any, s.options)
     silent = false
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
