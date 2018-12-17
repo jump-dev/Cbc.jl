@@ -400,5 +400,11 @@ function MOI.get(cbc_optimizer::Optimizer, object::MOI.PrimalStatus)
         return MOI.FeasiblePoint
     elseif isProvenInfeasible(cbc_optimizer.inner)
         return MOI.InfeasiblePoint
+    else
+        return MOI.NoSolution
     end
+end
+
+function MOI.get(cbc_optimizer::Optimizer, ::MOI.DualStatus)
+    return MOI.NoSolution
 end
