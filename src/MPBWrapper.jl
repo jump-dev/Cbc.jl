@@ -195,7 +195,7 @@ MPB.getrawsolver(m::CbcMathProgModel) = m.inner
 
 function MPB.setwarmstart!(m::CbcMathProgModel, v)
     if any(isnan, v)
-        Compat.@warn("Ignoring partial starting solution. Cbc requires a feasible value to be specified for all variables.")
+        Compat.@warn("Ignoring partial starting solution. Cbc requires a feasible value to be specified for all variables.", maxlog = 1)
         return
     end
 
