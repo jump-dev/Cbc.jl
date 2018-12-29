@@ -312,7 +312,7 @@ end
 
 
 function MOI.set(cbc_optimizer::Optimizer, object::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
-    if sense == MOI.MaxSense
+    if sense == MOI.MAX_SENSE
         CbcCI.setObjSense(cbc_optimizer.inner, -1)
     else ## Other senses are set as minimization (cbc default)
         CbcCI.setObjSense(cbc_optimizer.inner, 1)
@@ -367,41 +367,45 @@ function MOI.get(cbc_optimizer::Optimizer, object::MOI.ResultCount)
 end
 
 function MOI.get(cbc_optimizer::Optimizer, object::MOI.ObjectiveSense)
-    CbcCI.getObjSense(cbc_optimizer.inner) == 1 && return MOI.MinSense
-    CbcCI.getObjSense(cbc_optimizer.inner) == -1 && return MOI.MaxSense
+    CbcCI.getObjSense(cbc_optimizer.inner) == 1 && return MOI.MIN_SENSE
+    CbcCI.getObjSense(cbc_optimizer.inner) == -1 && return MOI.MAX_SENSE
 end
 
 function MOI.get(cbc_optimizer::Optimizer, object::MOI.TerminationStatus)
 
     if isProvenInfeasible(cbc_optimizer.inner)
-        return MOI.InfeasibleNoResult
+        return MOI.INFEASIBLE
     elseif isContinuousUnbounded(cbc_optimizer.inner)
-        return MOI.InfeasibleOrUnbounded
+        return MOI.INFEASIBLE_OR_UNBOUNDED
     elseif isNodeLimitReached(cbc_optimizer.inner)
-        return MOI.NodeLimit
+        return MOI.NODE_LIMIT
     elseif isSecondsLimitReached(cbc_optimizer.inner)
-        return MOI.TimeLimit
+        return MOI.TIME_LIMIT
     elseif isSolutionLimitReached(cbc_optimizer.inner)
-        return MOI.SolutionLimit
+        return MOI.SOLUTION_LIMIT
     elseif (isProvenOptimal(cbc_optimizer.inner) ||
             isInitialSolveProvenOptimal(cbc_optimizer.inner) ||
             MOI.get(cbc_optimizer, MOI.ResultCount()) == 1)
-        return MOI.Success
+        return MOI.OPTIMAL
     elseif isAbandoned(cbc_optimizer.inner)
-        return MOI.Interrupted
+        return MOI.INTERRUPTED
+    elseif optimizeNotCalled(cbc_optimizer.inner)
+        return MOI.OPTIMIZE_NOT_CALLED
     else
-        error("Internal error: Unrecognized solution status")
+        error("Internal error: Unrecognized solution status:",
+              " status = $(status(cbc_optimizer.inner)),",
+              " secondaryStatus = $(secondaryStatus(cbc_optimizer.inner))")
     end
 
 end
 
 function MOI.get(cbc_optimizer::Optimizer, object::MOI.PrimalStatus)
     if isProvenOptimal(cbc_optimizer.inner) || isInitialSolveProvenOptimal(cbc_optimizer.inner)
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif isProvenInfeasible(cbc_optimizer.inner)
-        return MOI.InfeasiblePoint
+        return MOI.INFEASIBLE_POINT
     else
-        return MOI.NoSolution
+        return MOI.NO_SOLUTION
     end
 end
 
