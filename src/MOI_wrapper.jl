@@ -389,6 +389,8 @@ function MOI.get(cbc_optimizer::Optimizer, object::MOI.TerminationStatus)
         return MOI.OPTIMAL
     elseif isAbandoned(cbc_optimizer.inner)
         return MOI.INTERRUPTED
+    elseif optimizeNotCalled(cbc_optimizer.inner)
+        return MOI.OPTIMIZE_NOT_CALLED
     else
         error("Internal error: Unrecognized solution status")
     end
