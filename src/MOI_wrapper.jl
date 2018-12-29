@@ -392,7 +392,9 @@ function MOI.get(cbc_optimizer::Optimizer, object::MOI.TerminationStatus)
     elseif optimizeNotCalled(cbc_optimizer.inner)
         return MOI.OPTIMIZE_NOT_CALLED
     else
-        error("Internal error: Unrecognized solution status")
+        error("Internal error: Unrecognized solution status:",
+              " status = $(status(cbc_optimizer.inner)),",
+              " secondaryStatus = $(secondaryStatus(cbc_optimizer.inner))")
     end
 
 end
