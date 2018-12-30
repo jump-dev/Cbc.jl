@@ -12,22 +12,28 @@ project.*
 
 
 [![Build Status](https://travis-ci.org/JuliaOpt/Cbc.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/Cbc.jl)
-
-[![Cbc](http://pkg.julialang.org/badges/Cbc_0.6.svg)](http://pkg.julialang.org/?pkg=Cbc&ver=0.6)
+[![codecov](https://codecov.io/gh/JuliaOpt/Cbc.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaOpt/Cbc.jl)
 
 ## Installation
 
-The package is registered in `METADATA.jl` and so can be installed with
-`Pkg.add`.
+The package is registered in `METADATA.jl` and so can be installed with `Pkg.add`.
 
 ```
-julia> Pkg.add("Cbc")
+julia>import Pkg; Pkg.add("Cbc")
 ```
 
-The supported platforms are Linux, OS X, and Windows. Binaries are provided for
-Windows and OS X, and will be installed by default. On Linux, Cbc will be
-automatically compiled from source. Ensure that a C++ compiler is installed
-first; on Debian-based systems, install the ``build-essential`` package.
+Cbc.jl will use [BinaryProvider.jl](https://github.com/JuliaPackaging/BinaryProvider.jl) to automatically install the Cbc binaries. This should work for both the official Julia binaries from `https://julialang.org/downloads/` and source-builds. 
+
+## Custom Installation
+
+To install custom built Clp binaries set the environmental variable `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`. For instance, if the libraries are installed in `/opt/lib` just call
+```julia
+ENV["JULIA_CBC_LIBRARY_PATH"]="/opt/lib"
+import Pkg; Pkg.build("Cbc")
+```
+If you do not want BinaryProvider to download the default binaries on install set  `JULIA_CBC_LIBRARY_PATH`  before calling `import Pkg; Pkg.add("Cbc")`.
+
+To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.add("Cbc")`.
 
 ### Using with **[MathProgBase]**
 
