@@ -22,7 +22,7 @@ struct CbcModelFormat
     obj::Vector{Float64}
     row_lb::Vector{Float64}
     row_ub::Vector{Float64}
-    function CbcModelFormat(num_rows::Int, num_cols::Int)
+    function CbcModelFormat(num_rows::Integer, num_cols::Integer)
         obj = fill(0.0, num_cols)
         row_idx = Int[]
         col_idx = Int[]
