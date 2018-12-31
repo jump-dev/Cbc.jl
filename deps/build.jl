@@ -36,7 +36,14 @@ download_info = Dict(
     Windows(:x86_64, compiler_abi=CompilerABI(:gcc8)) => ("$bin_prefix/CbcBuilder.v2.9.9.x86_64-w64-mingw32-gcc8.tar.gz", "994410b63d842099f4b2beffed1a0b1da51832f416b23dd5f634e674b57429f7"),
 )
 
-
+# To fix gcc4 bug in Windows
+this_platform = platform_key_abi()
+if typeof(this_platform)==Windows && this_platform.compiler_abi.gcc_version == :gcc4
+   this_platform = Windows(arch(this_platform), libc=libc(this_platform), compiler_abi=CompilerABI(:gcc6))
+end
+                    
+                    
+# no dynamic dependencies until Pkg3 support for binaries
 dependencies = [
 #     "https://github.com/juan-pablo-vielma/CglBuilder/releases/download/v0.59.10-1/build_CglBuilder.v0.59.10.jl",
 #     "https://github.com/JuliaOpt/ClpBuilder/releases/download/v1.16.11-1/build_ClpBuilder.v1.16.11.jl",
@@ -49,33 +56,41 @@ dependencies = [
 #     "https://github.com/juan-pablo-vielma/ASLBuilder/releases/download/v3.1.0-1/build_ASLBuilder.v3.1.0.jl"
 ]
                     
-# Install unsatisfied or updated dependencies:
-unsatisfied = any(!satisfied(p; verbose=verbose) for p in products)
-
-# To fix gcc4 bug in Windows
-this_platform = platform_key_abi()
-if typeof(this_platform)==Windows && this_platform.compiler_abi.gcc_version == :gcc4
-   this_platform = Windows(arch(this_platform), libc=libc(this_platform), compiler_abi=CompilerABI(:gcc6))
-end
-dl_info = choose_download(download_info, this_platform)
+custom_library = false
+if haskey(ENV,"JULIA_CBC_LIBRARY_PATH")
+    custom_products = [LibraryProduct(ENV["JULIA_CBC_LIBRARY_PATH"],product.libnames,product.variable_name) for product in products]
+    if all(satisfied(p; verbose=verbose) for p in custom_products)
+        products = custom_products
+        custom_library = true
+    else
+        error("Could not install custom libraries from $(ENV["JULIA_CBC_LIBRARY_PATH"]).\nTo fall back to BinaryProvider call delete!(ENV,\"JULIA_CBC_LIBRARY_PATH\") and run build again.")
+    end
+end   
                     
-if dl_info === nothing && unsatisfied
-    # If we don't have a compatible .tar.gz to download, complain.
-    # Alternatively, you could attempt to install from a separate provider,
-    # build from source or something even more ambitious here.
-    error("Your platform (\"$(Sys.MACHINE)\", parsed as \"$(triplet(platform_key_abi()))\") is not supported by this package!")
-end
+if !custom_library
+    # Install unsatisfied or updated dependencies:
+    unsatisfied = any(!satisfied(p; verbose=verbose) for p in products)
+            
+    dl_info = choose_download(download_info, this_platform)
+    if dl_info === nothing && unsatisfied
+        # If we don't have a compatible .tar.gz to download, complain.
+        # Alternatively, you could attempt to install from a separate provider,
+        # build from source or something even more ambitious here.
+        error("Your platform (\"$(Sys.MACHINE)\", parsed as \"$(triplet(platform_key_abi()))\") is not supported by this package!")
+    end
 
-# If we have a download, and we are unsatisfied (or the version we're
-# trying to install is not itself installed) then load it up!
-if unsatisfied || !isinstalled(dl_info...; prefix=prefix)
-#     for dependency in reverse(dependencies)          # We do not check for already installed dependencies
-#        download(dependency,basename(dependency))
-#        evalfile(basename(dependency))
-#     end   
-    # Download and install binaries
-    install(dl_info...; prefix=prefix, force=true, verbose=verbose)
-end
-
+    # If we have a download, and we are unsatisfied (or the version we're
+    # trying to install is not itself installed) then load it up!
+    if unsatisfied || !isinstalled(dl_info...; prefix=prefix)
+        # Download and install binaries
+    # no dynamic dependencies until Pkg3 support for binaries
+    #     for dependency in reverse(dependencies)          # We do not check for already installed dependencies
+    #        download(dependency,basename(dependency))
+    #        evalfile(basename(dependency))
+    #     end   
+        install(dl_info...; prefix=prefix, force=true, verbose=verbose)
+    end
+ end
+                    
 # Write out a deps.jl file that will contain mappings for our products
 write_deps_file(joinpath(@__DIR__, "deps.jl"), products, verbose=verbose)
