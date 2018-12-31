@@ -39,6 +39,7 @@ export CbcModel,
     sumPrimalInfeasibilities,
     numberPrimalInfeasibilities,
     getIterationCount,
+    optimizeNotCalled,
     isAbandoned,
     isProvenOptimal,
     isProvenInfeasible,
@@ -305,5 +306,10 @@ end
 # see Cbc_C_Interface.h documentation
 @getproperty Cint status
 @getproperty Cint secondaryStatus
+
+# Both values are set to `-1` in the constructor and `resetModel`
+function optimizeNotCalled(prob::CbcModel)
+    return status(prob) == -1 && secondaryStatus(prob) == -1
+end
 
 end
