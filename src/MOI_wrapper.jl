@@ -22,6 +22,9 @@ struct CbcModelFormat
     obj::Vector{Float64}
     row_lb::Vector{Float64}
     row_ub::Vector{Float64}
+    # `num_cols` is `Int64` if the model is copied from a model create with
+    # `MOIU.@model`, it is converted to `Int32` in `new` and throws an
+    # `InexactError` in case it is too large.
     function CbcModelFormat(num_rows::Integer, num_cols::Integer)
         obj = fill(0.0, num_cols)
         row_idx = Int[]
