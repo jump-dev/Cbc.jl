@@ -22,7 +22,7 @@ struct CbcModelFormat
     obj::Vector{Float64}
     row_lb::Vector{Float64}
     row_ub::Vector{Float64}
-    function CbcModelFormat(num_rows::Int, num_cols::Int)
+    function CbcModelFormat(num_rows::Integer, num_cols::Integer)
         obj = fill(0.0, num_cols)
         row_idx = Int[]
         col_idx = Int[]
@@ -32,6 +32,9 @@ struct CbcModelFormat
         row_lb = fill(-Inf, num_rows)
         row_ub = fill(Inf, num_rows)
         constraint_matrix = Tuple{Int,Int,Float64}[]
+        # An `InexactError` might occur if `num_rows` or `num_cols` is too
+        # large, e.g., if `num_cols isa Int64` and is larger than 2^31 on a
+        # 32-bit hardware
         new(num_rows, num_cols, row_idx, col_idx, values, col_lb, col_ub,
             obj, row_lb, row_ub)
     end
