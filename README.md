@@ -18,21 +18,21 @@ project.*
 The package is registered in `METADATA.jl` and so can be installed with `Pkg.add`.
 
 ```
-julia>import Pkg; Pkg.add("Cbc")
+julia> import Pkg; Pkg.add("Cbc")
 ```
 
-Cbc.jl will use [BinaryProvider.jl](https://github.com/JuliaPackaging/BinaryProvider.jl) to automatically install the Cbc binaries. This should work for both the official Julia binaries from `https://julialang.org/downloads/` and source-builds. 
+Cbc.jl will use [BinaryProvider.jl](https://github.com/JuliaPackaging/BinaryProvider.jl) to automatically install the Cbc binaries. This should work for both the official Julia binaries from `https://julialang.org/downloads/` and source-builds.
 
 ## Custom Installation
 
 To install custom built Clp binaries set the environmental variable `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`. For instance, if the libraries are installed in `/opt/lib` just call
 ```julia
-ENV["JULIA_CBC_LIBRARY_PATH"]="/opt/lib"
+ENV["JULIA_CBC_LIBRARY_PATH"] = "/opt/lib"
 import Pkg; Pkg.build("Cbc")
 ```
 If you do not want BinaryProvider to download the default binaries on install set  `JULIA_CBC_LIBRARY_PATH`  before calling `import Pkg; Pkg.add("Cbc")`.
 
-To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.add("Cbc")`.
+To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`.
 
 ### Using with **[MathProgBase]**
 
