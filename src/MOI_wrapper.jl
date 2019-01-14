@@ -413,5 +413,5 @@ function MOI.get(cbc_optimizer::Optimizer, object::MOI.PrimalStatus)
 end
 
 function MOI.get(cbc_optimizer::Optimizer, ::MOI.DualStatus)
-    return MOI.NoSolution
+    return MOI.NO_SOLUTION
 end
