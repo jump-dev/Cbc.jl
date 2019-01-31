@@ -173,7 +173,7 @@ end
 function problemName(prob::CbcModel)
     check_problem(prob)
     a = Array(UInt8, 100)
-    GC.@preserve prob a begin
+    GC.@preserve prob begin
         @cbc_ccall problemName Cvoid (Ptr{Cvoid},Cint,Ptr{UInt8}) prob.p 100 a
     end
     return string(a)
@@ -227,7 +227,7 @@ end
 # 1 : minimize, -1 : maximize
 function setObjSense(prob::CbcModel, sense)
     check_problem(prob)
-    GC.@preserve prob sense begin
+    GC.@preserve prob begin
         @cbc_ccall setObjSense Cvoid (Ptr{Cvoid}, Float64) prob.p sense
     end
 end
@@ -259,7 +259,7 @@ end
 for s in (:setRowUpper, :setRowLower, :setObjCoeff, :setColLower, :setColUpper)
     @eval function($s)(prob::CbcModel, index::Integer, value::Float64)
         check_problem(prob)
-        GC.@preserve prob index value begin
+        GC.@preserve prob begin
             @cbc_ccall $s Cvoid (Ptr{Cvoid}, Cint, Float64) prob.p index value
         end
     end
@@ -282,7 +282,7 @@ end
 
 function setInteger(prob::CbcModel, index::Integer)
     check_problem(prob)
-    GC.@preserve prob index begin
+    GC.@preserve prob begin
         @cbc_ccall setInteger Cvoid (Ptr{Cvoid},Cint) prob.p index
     end
 end
@@ -299,7 +299,7 @@ end
 function setParameter(prob::CbcModel, name::String, value::String)
     @assert isascii(name)
     @assert isascii(value)
-    GC.@preserve prob name value begin
+    GC.@preserve prob name begin
         @cbc_ccall setParameter Cvoid (Ptr{Cvoid},Ptr{UInt8},Ptr{UInt8}) prob.p name value
     end
 end
@@ -339,7 +339,7 @@ end
 function addSOS(prob::CbcModel, numRows::Integer, rowStarts::Vector{Cint},
     colIndices::Vector{Cint}, weights::Vector{Float64}, typ::Integer)
 
-    GC.@preserve prob numRows rowStarts colIndices weights typ begin
+    GC.@preserve prob colIndices weights begin
         @cbc_ccall(addSOS,Cvoid,(Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint},
                                 Ptr{Float64}, Cint),prob.p,numRows,
                                 rowStarts .- convert(Cint,1),
