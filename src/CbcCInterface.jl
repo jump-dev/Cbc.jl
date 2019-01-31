@@ -138,34 +138,26 @@ function loadProblem(prob::CbcModel,
     mat = convert(SparseMatrixCSC{Float64,Int32},constraint_matrix)
     nrow,ncol = size(mat)
 
-    GC.@preserve mat begin
-        @cbc_ccall loadProblem Cvoid (Ptr{Cvoid}, Int32, Int32, Ptr{CoinBigIndex},
-            Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-            Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob ncol nrow mat.colptr.-Int32(1) mat.rowval.-Int32(1) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
-    end
+    @cbc_ccall loadProblem Cvoid (Ptr{Cvoid}, Int32, Int32, Ptr{CoinBigIndex},
+        Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
+        Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob ncol nrow mat.colptr.-Int32(1) mat.rowval.-Int32(1) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
 end
 
 function readMps(prob::CbcModel, filename::String)
     check_problem(prob)
     @assert isascii(filename)
-    GC.@preserve filename begin
-        @cbc_ccall readMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob filename
-    end
+    @cbc_ccall readMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob filename
 end
 
 function writeMps(prob::CbcModel, filename::String)
     check_problem(prob)
     @assert isascii(filename)
-    GC.@preserve filename begin
-        @cbc_ccall writeMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob filename
-    end
+    @cbc_ccall writeMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob filename
 end
 
 function setInitialSolution(prob::CbcModel, array::Vector{Float64})
     check_problem(prob)
-    GC.@preserve array begin
-        @cbc_ccall setInitialSolution Cvoid (Ptr{Cvoid}, Ptr{Float64}) prob array
-    end
+    @cbc_ccall setInitialSolution Cvoid (Ptr{Cvoid}, Ptr{Float64}) prob array
 end
 
 function problemName(prob::CbcModel)
@@ -271,9 +263,7 @@ end
 function setParameter(prob::CbcModel, name::String, value::String)
     @assert isascii(name)
     @assert isascii(value)
-    GC.@preserve name begin
-        @cbc_ccall setParameter Cvoid (Ptr{Cvoid},Ptr{UInt8},Ptr{UInt8}) prob name value
-    end
+    @cbc_ccall setParameter Cvoid (Ptr{Cvoid},Ptr{UInt8},Ptr{UInt8}) prob name value
 end
 
 # TODO: registerCallBack clearCallBack
@@ -307,13 +297,11 @@ end
 function addSOS(prob::CbcModel, numRows::Integer, rowStarts::Vector{Cint},
     colIndices::Vector{Cint}, weights::Vector{Float64}, typ::Integer)
 
-    GC.@preserve colIndices weights begin
-        @cbc_ccall(addSOS,Cvoid,(Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint},
-                                Ptr{Float64}, Cint), prob, numRows,
-                                rowStarts .- convert(Cint,1),
-                                colIndices .- convert(Cint,1),
-                                weights, typ)
-    end
+    @cbc_ccall(addSOS,Cvoid,(Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint},
+                            Ptr{Float64}, Cint), prob, numRows,
+                            rowStarts .- convert(Cint,1),
+                            colIndices .- convert(Cint,1),
+                            weights, typ)
 end
 
 # see Cbc_C_Interface.h documentation
