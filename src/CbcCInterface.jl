@@ -79,6 +79,7 @@ mutable struct CbcModel
     end
 end
 
+# This is defined so that we can pass a CbcModel as an argument to ccall without worrying about it being garbage collected during the call.
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, prob::CbcModel) = prob.p
 
 function deleteModel(prob::CbcModel)
