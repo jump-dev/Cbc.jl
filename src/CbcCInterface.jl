@@ -79,13 +79,13 @@ mutable struct CbcModel
     end
 end
 
+Base.unsafe_convert(::Type{Ptr{Cvoid}}, prob::CbcModel) = prob.p
+
 function deleteModel(prob::CbcModel)
     if prob.p == C_NULL
         return
     end
-    GC.@preserve prob begin
-        @cbc_ccall deleteModel Cvoid (Ptr{Cvoid},) prob.p
-    end
+    @cbc_ccall deleteModel Cvoid (Ptr{Cvoid},) prob
     prob.p = C_NULL
     return
 end
@@ -100,9 +100,7 @@ end
 macro getproperty(T, name)
     @eval function ($name)(prob::CbcModel)
         check_problem(prob)
-        GC.@preserve prob begin
-            @cbc_ccall $name $T (Ptr{Cvoid},) prob.p
-        end
+        @cbc_ccall $name $T (Ptr{Cvoid},) prob
     end
 end
 
@@ -140,80 +138,70 @@ function loadProblem(prob::CbcModel,
     mat = convert(SparseMatrixCSC{Float64,Int32},constraint_matrix)
     nrow,ncol = size(mat)
 
-    GC.@preserve prob mat begin
+    GC.@preserve mat begin
         @cbc_ccall loadProblem Cvoid (Ptr{Cvoid}, Int32, Int32, Ptr{CoinBigIndex},
             Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-            Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob.p ncol nrow mat.colptr.-Int32(1) mat.rowval.-Int32(1) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
+            Ptr{Float64}, Ptr{Float64}, Ptr{Float64}) prob ncol nrow mat.colptr.-Int32(1) mat.rowval.-Int32(1) mat.nzval vec_or_null(Float64, col_lb, ncol) vec_or_null(Float64, col_ub, ncol) vec_or_null(Float64, obj, ncol) vec_or_null(Float64, row_lb, nrow) vec_or_null(Float64, row_ub, nrow)
     end
 end
 
 function readMps(prob::CbcModel, filename::String)
     check_problem(prob)
     @assert isascii(filename)
-    GC.@preserve prob filename begin
-        @cbc_ccall readMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob.p filename
+    GC.@preserve filename begin
+        @cbc_ccall readMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob filename
     end
 end
 
 function writeMps(prob::CbcModel, filename::String)
     check_problem(prob)
     @assert isascii(filename)
-    GC.@preserve prob filename begin
-        @cbc_ccall writeMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob.p filename
+    GC.@preserve filename begin
+        @cbc_ccall writeMps Cint (Ptr{Cvoid}, Ptr{UInt8}) prob filename
     end
 end
 
 function setInitialSolution(prob::CbcModel, array::Vector{Float64})
     check_problem(prob)
-    GC.@preserve prob array begin
-        @cbc_ccall setInitialSolution Cvoid (Ptr{Cvoid}, Ptr{Float64}) prob.p array
+    GC.@preserve array begin
+        @cbc_ccall setInitialSolution Cvoid (Ptr{Cvoid}, Ptr{Float64}) prob array
     end
 end
 
 function problemName(prob::CbcModel)
     check_problem(prob)
     a = Array(UInt8, 100)
-    GC.@preserve prob begin
-        @cbc_ccall problemName Cvoid (Ptr{Cvoid},Cint,Ptr{UInt8}) prob.p 100 a
-    end
+    @cbc_ccall problemName Cvoid (Ptr{Cvoid},Cint,Ptr{UInt8}) prob 100 a
     return string(a)
 end
 
 #function setProblemName(prob::CbcModel)
 #    check_problem(prob)
-#    @cbc_ccall setProblemName Cint (Ptr{Cvoid},Ptr{UInt8}) prob.p bytestring(a)
+#    @cbc_ccall setProblemName Cint (Ptr{Cvoid},Ptr{UInt8}) prob bytestring(a)
 #end
 
 function getNumElements(prob::CbcModel)
     check_problem(prob)
-    GC.@preserve prob begin
-        @cbc_ccall getNumElements Cint (Ptr{Cvoid},) prob.p
-    end
+    @cbc_ccall getNumElements Cint (Ptr{Cvoid},) prob
 end
 
 function getVectorStarts(prob::CbcModel)
     check_problem(prob)
-    GC.@preserve prob begin
-        p = @cbc_ccall getVectorStarts Ptr{CoinBigIndex} (Ptr{Cvoid},) prob.p
-    end
+    p = @cbc_ccall getVectorStarts Ptr{CoinBigIndex} (Ptr{Cvoid},) prob
     num_cols = Int(getNumCols(prob))
     return copy(unsafe_wrap(Array,p,(num_cols+1,)))
 end
 
 function getIndices(prob::CbcModel)
     check_problem(prob)
-    GC.@preserve prob begin
-        p = @cbc_ccall getIndices Ptr{Cint} (Ptr{Cvoid},) prob.p
-    end
+    p = @cbc_ccall getIndices Ptr{Cint} (Ptr{Cvoid},) prob
     nnz = Int(getNumElements(prob))
     return copy(unsafe_wrap(Array,p,(nnz,)))
 end
 
 function getElements(prob::CbcModel)
     check_problem(prob)
-    GC.@preserve prob begin
-        p = @cbc_ccall getElements Ptr{Float64} (Ptr{Cvoid},) prob.p
-    end
+    p = @cbc_ccall getElements Ptr{Float64} (Ptr{Cvoid},) prob
     nnz = Int(getNumElements(prob))
     return copy(unsafe_wrap(Array,p,(nnz,)))
 end
@@ -227,9 +215,7 @@ end
 # 1 : minimize, -1 : maximize
 function setObjSense(prob::CbcModel, sense)
     check_problem(prob)
-    GC.@preserve prob begin
-        @cbc_ccall setObjSense Cvoid (Ptr{Cvoid}, Float64) prob.p sense
-    end
+    @cbc_ccall setObjSense Cvoid (Ptr{Cvoid}, Float64) prob sense
 end
 
 @getproperty Float64 getObjSense
@@ -238,9 +224,7 @@ for s in (:getRowLower, :getRowUpper, :getRowActivity)
     @eval function ($s)(prob::CbcModel)
         check_problem(prob)
         nrow = Int(getNumRows(prob))
-        GC.@preserve prob begin
-            p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob.p
-        end
+        p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
         return copy(unsafe_wrap(Array,p,(nrow,)))
     end
 end
@@ -249,9 +233,7 @@ for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
     @eval function ($s)(prob::CbcModel)
         check_problem(prob)
         ncol = Int(getNumCols(prob))
-        GC.@preserve prob begin
-            p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob.p
-        end
+        p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
         return copy(unsafe_wrap(Array,p,(ncol,)))
     end
 end
@@ -259,38 +241,28 @@ end
 for s in (:setRowUpper, :setRowLower, :setObjCoeff, :setColLower, :setColUpper)
     @eval function($s)(prob::CbcModel, index::Integer, value::Float64)
         check_problem(prob)
-        GC.@preserve prob begin
-            @cbc_ccall $s Cvoid (Ptr{Cvoid}, Cint, Float64) prob.p index value
-        end
+        @cbc_ccall $s Cvoid (Ptr{Cvoid}, Cint, Float64) prob index value
     end
 end
 
 function isInteger(prob::CbcModel, index::Integer)
     check_problem(prob)
-    GC.@preserve prob index begin
-        v = @cbc_ccall isInteger Cint (Ptr{Cvoid},Cint) prob.p index
-    end
+    v = @cbc_ccall isInteger Cint (Ptr{Cvoid},Cint) prob index
     return v == 1
 end
 
 function setContinuous(prob::CbcModel, index::Integer)
     check_problem(prob)
-    GC.@preserve prob index begin
-        @cbc_ccall setContinuous Cvoid (Ptr{Cvoid},Cint) prob.p index
-    end
+    @cbc_ccall setContinuous Cvoid (Ptr{Cvoid},Cint) prob index
 end
 
 function setInteger(prob::CbcModel, index::Integer)
     check_problem(prob)
-    GC.@preserve prob begin
-        @cbc_ccall setInteger Cvoid (Ptr{Cvoid},Cint) prob.p index
-    end
+    @cbc_ccall setInteger Cvoid (Ptr{Cvoid},Cint) prob index
 end
 
 function Base.copy(prob::CbcModel)
-    GC.@preserve prob begin
-        p = @cbc_ccall clone Ptr{Cvoid} (Ptr{Cvoid},) prob.p
-    end
+    p = @cbc_ccall clone Ptr{Cvoid} (Ptr{Cvoid},) prob
     prob = CbcModel(p)
     @compat finalizer(deleteModel, prob)
     return prob
@@ -299,17 +271,15 @@ end
 function setParameter(prob::CbcModel, name::String, value::String)
     @assert isascii(name)
     @assert isascii(value)
-    GC.@preserve prob name begin
-        @cbc_ccall setParameter Cvoid (Ptr{Cvoid},Ptr{UInt8},Ptr{UInt8}) prob.p name value
+    GC.@preserve name begin
+        @cbc_ccall setParameter Cvoid (Ptr{Cvoid},Ptr{UInt8},Ptr{UInt8}) prob name value
     end
 end
 
 # TODO: registerCallBack clearCallBack
 
 function solve(prob::CbcModel)
-    GC.@preserve prob begin
-        @cbc_ccall solve Cint (Ptr{Cvoid},) prob.p
-    end
+    @cbc_ccall solve Cint (Ptr{Cvoid},) prob
 end
 
 @getproperty Float64 sumPrimalInfeasibilities
@@ -323,9 +293,7 @@ for s in (:isAbandoned, :isProvenOptimal, :isProvenInfeasible, :isContinuousUnbo
     :isNodeLimitReached, :isSecondsLimitReached, :isSolutionLimitReached, :isInitialSolveAbandoned, :isInitialSolveProvenOptimal, :isInitialSolveProvenPrimalInfeasible)
     @eval function ($s)(prob::CbcModel)
         check_problem(prob)
-        GC.@preserve prob begin
-            v = @cbc_ccall $s Cint (Ptr{Cvoid},) prob.p
-        end
+        v = @cbc_ccall $s Cint (Ptr{Cvoid},) prob
         return v != 0
     end
 end
@@ -339,9 +307,9 @@ end
 function addSOS(prob::CbcModel, numRows::Integer, rowStarts::Vector{Cint},
     colIndices::Vector{Cint}, weights::Vector{Float64}, typ::Integer)
 
-    GC.@preserve prob colIndices weights begin
+    GC.@preserve colIndices weights begin
         @cbc_ccall(addSOS,Cvoid,(Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint},
-                                Ptr{Float64}, Cint),prob.p,numRows,
+                                Ptr{Float64}, Cint), prob, numRows,
                                 rowStarts .- convert(Cint,1),
                                 colIndices .- convert(Cint,1),
                                 weights, typ)
