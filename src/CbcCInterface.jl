@@ -214,7 +214,7 @@ end
 @getproperty Float64 getObjSense
 
 for s in (:getRowLower, :getRowUpper, :getRowActivity)
-    unsafe_s=Symbol("unsafe",'_',s)
+    unsafe_s = Symbol("unsafe", '_', s)
     @eval function ($unsafe_s)(prob::CbcModel)
         check_problem(prob)
         nrow = Int(getNumRows(prob))
@@ -225,7 +225,7 @@ for s in (:getRowLower, :getRowUpper, :getRowActivity)
 end
 
 for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
-    unsafe_s=Symbol("unsafe",'_',s)
+    unsafe_s = Symbol("unsafe", '_', s)
     @eval function ($unsafe_s)(prob::CbcModel)
         check_problem(prob)
         ncol = Int(getNumCols(prob))
