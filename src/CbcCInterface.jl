@@ -214,21 +214,25 @@ end
 @getproperty Float64 getObjSense
 
 for s in (:getRowLower, :getRowUpper, :getRowActivity)
-    @eval function ($s)(prob::CbcModel)
+    unsafe_s=Symbol("unsafe",'_',s)
+    @eval function ($unsafe_s)(prob::CbcModel)
         check_problem(prob)
         nrow = Int(getNumRows(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
-        return copy(unsafe_wrap(Array,p,(nrow,)))
+        return unsafe_wrap(Array,p,(nrow,))
     end
+    @eval ($s)(prob::CbcModel)=($unsafe_s)(prob)
 end
 
 for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
-    @eval function ($s)(prob::CbcModel)
+    unsafe_s=Symbol("unsafe",'_',s)
+    @eval function ($unsafe_s)(prob::CbcModel)
         check_problem(prob)
         ncol = Int(getNumCols(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
-        return copy(unsafe_wrap(Array,p,(ncol,)))
+        return unsafe_wrap(Array,p,(ncol,))
     end
+    @eval ($s)(prob::CbcModel)=($unsafe_s)(prob)
 end
 
 for s in (:setRowUpper, :setRowLower, :setObjCoeff, :setColLower, :setColUpper)
