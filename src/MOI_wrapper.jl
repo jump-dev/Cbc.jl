@@ -8,7 +8,7 @@ const CbcCI = CbcCInterface
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcModel
-    # cache the params so they can be reset on `empty!`.
+    # Cache the params so they can be reset on `empty!`.
     params::Dict{String, String}
     """
         Optimizer(; kwargs...)
