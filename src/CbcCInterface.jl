@@ -221,7 +221,7 @@ for s in (:getRowLower, :getRowUpper, :getRowActivity)
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
         return unsafe_wrap(Array,p,(nrow,))
     end
-    @eval ($s)(prob::CbcModel)=($unsafe_s)(prob)
+    @eval ($s)(prob::CbcModel)=copy(($unsafe_s)(prob))
 end
 
 for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
@@ -232,7 +232,7 @@ for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
         return unsafe_wrap(Array,p,(ncol,))
     end
-    @eval ($s)(prob::CbcModel)=($unsafe_s)(prob)
+    @eval ($s)(prob::CbcModel)=copy(($unsafe_s)(prob))
 end
 
 for s in (:setRowUpper, :setRowLower, :setObjCoeff, :setColLower, :setColUpper)

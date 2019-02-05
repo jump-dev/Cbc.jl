@@ -347,14 +347,14 @@ end
 function MOI.get(cbc_optimizer::Optimizer, object::MOI.VariablePrimal,
                  ref::MOI.VariableIndex)
 
-    variablePrimals = CbcCI.getColSolution(cbc_optimizer.inner)
+    variablePrimals = CbcCI.unsafe_getColSolution(cbc_optimizer.inner)
     return variablePrimals[ref.value]
 end
 
 function MOI.get(cbc_optimizer::Optimizer, object::MOI.VariablePrimal,
                  ref::Vector{MOI.VariableIndex})
 
-    variablePrimals = CbcCI.getColSolution(cbc_optimizer.inner)
+    variablePrimals = CbcCI.unsafe_getColSolution(cbc_optimizer.inner)
     return [variablePrimals[vi.value] for vi in ref]
 end
 
