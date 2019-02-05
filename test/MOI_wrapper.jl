@@ -98,15 +98,15 @@ end
     MOI.set(knapsack, MOI.ObjectiveSense(), MOI.MAX_SENSE)
     terms = [MOI.ScalarAffineTerm(4.56 * mod(i, 25), x[i]) for i in 1:length(x)]
     MOI.add_constraint(
-        default_model, MOI.ScalarAffineFunction(terms, 0.0), MOI.LessThan(31.0))
+        knapsack, MOI.ScalarAffineFunction(terms, 0.0), MOI.LessThan(31.0))
     # Here is where the test begins.
     model = Cbc.Optimizer(seconds=0)
-    MOI.copy_to(model, default_model)
+    MOI.copy_to(model, knapsack)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
     # We also check that options are not destroyed on `empty!`.
     MOI.empty!(model)
-    MOI.copy_to(model, default_model)
+    MOI.copy_to(model, knapsack)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
 end
