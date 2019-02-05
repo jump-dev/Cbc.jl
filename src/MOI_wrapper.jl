@@ -8,7 +8,23 @@ const CbcCI = CbcCInterface
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcModel
-    Optimizer() = new(CbcModel()) # Initializes with an empty model
+    # cache the params so they can be reset on `empty!`.
+    params::Dict{String, String}
+    """
+        Optimizer(; kwargs...)
+
+    Create a new Cbc Optimizer.
+    """
+    function Optimizer(; kwargs...)
+        model = CbcModel()
+        params = Dict{String, String}()
+        # If an unknown argument is passed to kwargs..., Cbc will ignore it.
+        for (name, value) in kwargs
+            params[string(name)] = string(value)
+            setParameter(model, string(name), string(value))
+        end
+        return new(model, params)
+    end
 end
 
 struct CbcModelFormat
@@ -311,6 +327,10 @@ end
 # empty!
 function MOI.empty!(cbc_optimizer::Optimizer)
     cbc_optimizer.inner = CbcModel()
+    for (name, value) in cbc_optimizer.params
+        setParameter(cbc_optimizer.inner, name, value)
+    end
+    return
 end
 
 

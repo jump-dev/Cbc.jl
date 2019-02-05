@@ -78,3 +78,30 @@ end
         "solve_objbound_edge_cases"
     ])
 end
+
+@testset "Test params" begin
+    default_model = ModelForCachingOptimizer{Float64}()
+    x = MOI.add_variables(default_model, 100)
+    terms = [MOI.ScalarAffineTerm(rand(), x[i]) for i in 1:length(x)]
+    MOI.set(
+        default_model,
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ScalarAffineFunction(terms, 0.0))
+    MOI.set(default_model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    for i in 1:length(x)
+        MOI.add_constraint(default_model, MOI.SingleVariable(x[i]), MOI.Integer())
+        MOI.add_constraint(default_model, MOI.SingleVariable(x[i]), MOI.GreaterThan(0.0))
+    end
+    terms = [MOI.ScalarAffineTerm(rand(), x[i]) for i in 1:length(x)]
+    MOI.add_constraint(
+        default_model, MOI.ScalarAffineFunction(terms, 0.0), MOI.LessThan(31.0))
+
+    model = Cbc.Optimizer(seconds=0)
+    MOI.copy_to(model, default_model)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
+    MOI.empty!(model)
+    MOI.copy_to(model, default_model)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
+end
