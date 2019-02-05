@@ -8,7 +8,10 @@ const CbcCI = CbcCInterface
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcModel
-    Optimizer() = new(CbcModel()) # Initializes with an empty model
+    # A cache for the primal solution vector to avoid having to query the full
+    # vector in order to lookup one element.
+    primal_solution_cache::Vector{Float64}
+    Optimizer() = new(CbcModel(), Float64[]) # Initializes with an empty model
 end
 
 struct CbcModelFormat
@@ -278,9 +281,12 @@ function MOI.copy_to(cbc_optimizer::Optimizer,
 end
 
 
-function MOI.optimize!(cbc_optimizer::Optimizer)
-    # Call solve function
-    CbcCI.solve(cbc_optimizer.inner)
+function MOI.optimize!(model::Optimizer)
+    CbcCI.solve(model.inner)
+    if MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+        model.primal_solution_cache = CbcCI.getColSolution(model.inner)
+    end
+    return
 end
 
 function MOI.add_variable(cbc_optimizer::Optimizer)
@@ -311,6 +317,7 @@ end
 # empty!
 function MOI.empty!(cbc_optimizer::Optimizer)
     cbc_optimizer.inner = CbcModel()
+    empty!(cbc_optimizer.primal_solution_cache)
 end
 
 
@@ -344,18 +351,14 @@ function MOI.get(cbc_optimizer::Optimizer, object::MOI.ObjectiveValue)
     return CbcCI.getObjValue(cbc_optimizer.inner)
 end
 
-function MOI.get(cbc_optimizer::Optimizer, object::MOI.VariablePrimal,
-                 ref::MOI.VariableIndex)
-
-    variablePrimals = CbcCI.getColSolution(cbc_optimizer.inner)
-    return variablePrimals[ref.value]
+function MOI.get(
+    cbc_optimizer::Optimizer, ::MOI.VariablePrimal, ref::MOI.VariableIndex)
+    return cbc_optimizer.primal_solution_cache[ref.value]
 end
 
-function MOI.get(cbc_optimizer::Optimizer, object::MOI.VariablePrimal,
-                 ref::Vector{MOI.VariableIndex})
-
-    variablePrimals = CbcCI.getColSolution(cbc_optimizer.inner)
-    return [variablePrimals[vi.value] for vi in ref]
+function MOI.get(
+    cbc_optimizer::Optimizer, ::MOI.VariablePrimal, ref::Vector{MOI.VariableIndex})
+    return Float64[cbc_optimizer.primal_solution_cache[r.value] for r in ref]
 end
 
 function MOI.get(cbc_optimizer::Optimizer, object::MOI.ResultCount)
