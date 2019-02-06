@@ -57,6 +57,15 @@ export CbcModel,
     secondaryStatus,
     addSOS
 
+#The follow unsafe methods are created but not exported
+    # unsafe_getRowLower,
+    # unsafe_getRowUpper,
+    # unsafe_getRowActivity,
+    # unsafe_getColLower,
+    # unsafe_getColUpper,
+    # unsafe_getObjCoefficients,
+    # unsafe_getColSolution
+
 
 
 # helper macros/functions
@@ -214,25 +223,33 @@ end
 @getproperty Float64 getObjSense
 
 for s in (:getRowLower, :getRowUpper, :getRowActivity)
+    #This macro creates a unsafe wrapper to the following function
+    #It is unsafe due to the returned array residing in memory owned by Cbc
+    #The unsafe methods should be recalled when ever a change has been made to Cbc
     unsafe_s = Symbol("unsafe", '_', s)
     @eval function ($unsafe_s)(prob::CbcModel)
         check_problem(prob)
         nrow = Int(getNumRows(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
-        return unsafe_wrap(Array,p,(nrow,))
+        return unsafe_wrap(Array, p, (nrow,))
     end
-    @eval ($s)(prob::CbcModel)=copy(($unsafe_s)(prob))
+    #By making a copy of the unsafe array we can depend on it now changing.
+    @eval ($s)(prob::CbcModel) = copy(($unsafe_s)(prob))
 end
 
 for s in (:getColLower, :getColUpper, :getObjCoefficients, :getColSolution)
+    #This macro creates a unsafe wrapper to the following function
+    #It is unsafe due to the returned array residing in memory owned by Cbc
+    #The unsafe methods should be recalled when ever a change has been made to Cbc
     unsafe_s = Symbol("unsafe", '_', s)
     @eval function ($unsafe_s)(prob::CbcModel)
         check_problem(prob)
         ncol = Int(getNumCols(prob))
         p = @cbc_ccall $s Ptr{Float64} (Ptr{Cvoid},) prob
-        return unsafe_wrap(Array,p,(ncol,))
+        return unsafe_wrap(Array, p, (ncol,))
     end
-    @eval ($s)(prob::CbcModel)=copy(($unsafe_s)(prob))
+    #By making a copy of the unsafe array we can depend on it now changing.
+    @eval ($s)(prob::CbcModel) = copy(($unsafe_s)(prob))
 end
 
 for s in (:setRowUpper, :setRowLower, :setObjCoeff, :setColLower, :setColUpper)
