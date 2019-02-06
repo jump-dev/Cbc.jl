@@ -88,7 +88,6 @@ end
     x = MOI.add_variables(knapsack_model, 100)
     for i in 1:length(x)
         MOI.add_constraint(knapsack_model, MOI.SingleVariable(x[i]), MOI.ZeroOne())
-        MOI.add_constraint(knapsack_model, MOI.SingleVariable(x[i]), MOI.GreaterThan(0.0))
     end
     terms = [MOI.ScalarAffineTerm(1.23 * mod(i, 25), x[i]) for i in 1:length(x)]
     MOI.set(
