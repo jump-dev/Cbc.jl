@@ -84,29 +84,29 @@ end
     # with a time limit (seconds=0). To do so, we need to construct a MIP that
     # is non-trivial to solve. We use a binary knapsack with unusual
     # coefficients.
-    knapsack = ModelForCachingOptimizer{Float64}()
-    x = MOI.add_variables(knapsack, 100)
+    knapsack_model = ModelForCachingOptimizer{Float64}()
+    x = MOI.add_variables(knapsack_model, 100)
     for i in 1:length(x)
-        MOI.add_constraint(knapsack, MOI.SingleVariable(x[i]), MOI.ZeroOne())
-        MOI.add_constraint(knapsack, MOI.SingleVariable(x[i]), MOI.GreaterThan(0.0))
+        MOI.add_constraint(knapsack_model, MOI.SingleVariable(x[i]), MOI.ZeroOne())
+        MOI.add_constraint(knapsack_model, MOI.SingleVariable(x[i]), MOI.GreaterThan(0.0))
     end
     terms = [MOI.ScalarAffineTerm(1.23 * mod(i, 25), x[i]) for i in 1:length(x)]
     MOI.set(
-        knapsack,
+        knapsack_model,
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
         MOI.ScalarAffineFunction(terms, 0.0))
-    MOI.set(knapsack, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    MOI.set(knapsack_model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
     terms = [MOI.ScalarAffineTerm(4.56 * mod(i, 25), x[i]) for i in 1:length(x)]
     MOI.add_constraint(
-        knapsack, MOI.ScalarAffineFunction(terms, 0.0), MOI.LessThan(31.0))
+        knapsack_model, MOI.ScalarAffineFunction(terms, 0.0), MOI.LessThan(31.0))
     # Here is where the test begins.
     model = Cbc.Optimizer(seconds=0)
-    MOI.copy_to(model, knapsack)
+    MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
     # We also check that options are not destroyed on `empty!`.
     MOI.empty!(model)
-    MOI.copy_to(model, knapsack)
+    MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
 end
