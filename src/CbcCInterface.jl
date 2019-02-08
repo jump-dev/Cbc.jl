@@ -64,7 +64,6 @@ export CbcModel,
     secondaryStatus,
     addSOS
 
-#The follow unsafe methods are created but not exported
 
 
 
