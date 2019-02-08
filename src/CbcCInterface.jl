@@ -66,9 +66,6 @@ export CbcModel,
 
 
 
-
-
-
 # helper macros/functions
 
 macro cbc_ccall(func, args...)
