@@ -80,33 +80,21 @@ end
 end
 
 @testset "Test params" begin
-    # This test checks that options are passed through to the solver. We test
-    # with a time limit (seconds=0). To do so, we need to construct a MIP that
-    # is non-trivial to solve. We use a binary knapsack with unusual
-    # coefficients.
     knapsack = ModelForCachingOptimizer{Float64}()
-    x = MOI.add_variables(knapsack, 100)
-    for i in 1:length(x)
-        MOI.add_constraint(knapsack, MOI.SingleVariable(x[i]), MOI.ZeroOne())
-        MOI.add_constraint(knapsack, MOI.SingleVariable(x[i]), MOI.GreaterThan(0.0))
-    end
-    terms = [MOI.ScalarAffineTerm(1.23 * mod(i, 25), x[i]) for i in 1:length(x)]
-    MOI.set(
-        knapsack,
-        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-        MOI.ScalarAffineFunction(terms, 0.0))
-    MOI.set(knapsack, MOI.ObjectiveSense(), MOI.MAX_SENSE)
-    terms = [MOI.ScalarAffineTerm(4.56 * mod(i, 25), x[i]) for i in 1:length(x)]
-    MOI.add_constraint(
-        knapsack, MOI.ScalarAffineFunction(terms, 0.0), MOI.LessThan(31.0))
-    # Here is where the test begins.
-    model = Cbc.Optimizer(seconds=0)
+    MOIU.loadfromstring!(knapsack, """
+        variables: x, y
+        maxobjective: x + y
+        c1: x in ZeroOne()
+        c2: y in ZeroOne()
+        c3: x + y <= 1.0
+    """)
+    model = Cbc.Optimizer(maxNodes=0, presolve="off", cuts="off", heur="off", logLevel=0)
     MOI.copy_to(model, knapsack)
     MOI.optimize!(model)
-    @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
     # We also check that options are not destroyed on `empty!`.
     MOI.empty!(model)
     MOI.copy_to(model, knapsack)
     MOI.optimize!(model)
-    @test MOI.get(model, MOI.TerminationStatus()) == MOI.TIME_LIMIT
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
 end
