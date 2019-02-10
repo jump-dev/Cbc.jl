@@ -94,7 +94,7 @@ end
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
     # We also check that options are not destroyed on `empty!`.
     MOI.empty!(model)
-    MOI.copy_to(model, knapsack)
+    MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
 end
