@@ -1,4 +1,4 @@
-using Cbc, Compat.Test, MathOptInterface
+using Cbc, Test, MathOptInterface
 
 const MOI = MathOptInterface
 const MOIT = MOI.Test

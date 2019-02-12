@@ -5,7 +5,7 @@ const MOIU = MathOptInterface.Utilities
 import Cbc.CbcCInterface
 const CbcCI = CbcCInterface
 
-using Compat.SparseArrays
+using SparseArrays
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcCI.CbcModel
