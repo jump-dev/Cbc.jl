@@ -1,4 +1,4 @@
-using Cbc, Compat.Test
+using Cbc, Test
 
 @testset "MPB" begin
     include("MPB_wrapper.jl")

@@ -1,8 +1,8 @@
 module CbcCInterface
-using Compat: Cvoid, @compat
-using Compat.SparseArrays
 
-import ..Cbc
+import ..Cbc.libcbcsolver
+
+using SparseArrays
 
 export CbcModel,
     loadProblem,
@@ -69,10 +69,10 @@ export CbcModel,
 # helper macros/functions
 
 macro cbc_ccall(func, args...)
-    args = map(esc,args)
+    args = map(esc, args)
     f = "Cbc_$(func)"
     quote
-        ccall(($f,Cbc.libcbcsolver), $(args...))
+        ccall(($f, libcbcsolver), $(args...))
     end
 end
 
@@ -81,7 +81,7 @@ mutable struct CbcModel
     function CbcModel()
         p = @cbc_ccall newModel Ptr{Cvoid} ()
         prob = new(p)
-        @compat finalizer(deleteModel, prob)
+        finalizer(deleteModel, prob)
         return prob
     end
 end
@@ -276,7 +276,7 @@ end
 function Base.copy(prob::CbcModel)
     p = @cbc_ccall clone Ptr{Cvoid} (Ptr{Cvoid},) prob
     prob = CbcModel(p)
-    @compat finalizer(deleteModel, prob)
+    finalizer(deleteModel, prob)
     return prob
 end
 

@@ -1,8 +1,8 @@
 module CbcMathProgSolverInterface
 
 using Cbc.CbcCInterface
-using Compat
-using Compat.SparseArrays
+
+using SparseArrays
 
 import MathProgBase
 const MPB = MathProgBase
@@ -195,7 +195,8 @@ MPB.getrawsolver(m::CbcMathProgModel) = m.inner
 
 function MPB.setwarmstart!(m::CbcMathProgModel, v)
     if any(isnan, v)
-        Compat.@warn("Ignoring partial starting solution. Cbc requires a feasible value to be specified for all variables.", maxlog = 1)
+        @warn("Ignoring partial starting solution. Cbc requires a feasible " *
+              "value to be specified for all variables.", maxlog = 1)
         return
     end
 
