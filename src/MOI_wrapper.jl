@@ -1,4 +1,4 @@
-using MathOptInterface
+import MathOptInterface
 const MOI = MathOptInterface
 const MOIU = MathOptInterface.Utilities
 
@@ -9,8 +9,26 @@ using Compat.SparseArrays
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcCI.CbcModel
+    # Cache the params so they can be reset on `empty!`.
+    params::Dict{String, String}
+    # Cache the objective constant (if there is one).
     objective_constant::Float64
-    Optimizer() = new(CbcCI.CbcModel(), 0.0)
+
+    """
+        Optimizer(; kwargs...)
+
+    Create a new Cbc Optimizer.
+    """
+    function Optimizer(; kwargs...)
+        model = CbcCI.CbcModel()
+        params = Dict{String, String}()
+        # If an unknown argument is passed to kwargs..., Cbc will ignore it.
+        for (name, value) in kwargs
+            params[string(name)] = string(value)
+            CbcCI.setParameter(model, string(name), string(value))
+        end
+        return new(model, params, 0.0)
+    end
 end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "COIN Branch-and-Cut (Cbc)"
@@ -18,7 +36,9 @@ MOI.get(::Optimizer, ::MOI.SolverName) = "COIN Branch-and-Cut (Cbc)"
 function MOI.empty!(model::Optimizer)
     model.inner = CbcCI.CbcModel()
     model.objective_constant = 0.0
-    CbcCI.setParameter(model.inner, "logLevel", "0")
+    for (name, value) in model.params
+        CbcCI.setParameter(model.inner, name, value)
+    end
     return
 end
 

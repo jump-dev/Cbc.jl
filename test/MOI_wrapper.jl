@@ -17,7 +17,7 @@ const MOIU = MOI.Utilities
 
 const OPTIMIZER = MOIU.CachingOptimizer(
     MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}()),
-    Cbc.Optimizer()
+    Cbc.Optimizer(logLevel = 0)
 )
 
 const CONFIG = MOIT.TestConfig(duals = false, infeas_certificates = false)
@@ -74,4 +74,25 @@ end
     MOIT.intlineartest(OPTIMIZER, CONFIG, [
         "int2"  # Requires Special-Ordered-Sets
     ])
+end
+
+@testset "Test params" begin
+    knapsack = ModelForCachingOptimizer{Float64}()
+    MOIU.loadfromstring!(knapsack, """
+        variables: x, y
+        maxobjective: x + y
+        c1: x in ZeroOne()
+        c2: y in ZeroOne()
+        c3: x + y <= 1.0
+    """)
+    model = Cbc.Optimizer(
+        maxNodes=0, presolve="off", cuts="off", heur="off", logLevel=0)
+    MOI.copy_to(model, knapsack)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
+    # We also check that options are not destroyed on `empty!`.
+    MOI.empty!(model)
+    MOI.copy_to(model, knapsack)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
 end
