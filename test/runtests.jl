@@ -1,4 +1,9 @@
-using Cbc
+using Cbc, Compat.Test
 
-include("MPB_wrapper.jl")
-include("MOI_wrapper.jl")
+@testset "MPB" begin
+    include("MPB_wrapper.jl")
+end
+
+@testset "MOI" begin
+    include("MOI_wrapper.jl")
+end
