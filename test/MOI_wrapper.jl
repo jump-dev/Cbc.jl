@@ -85,8 +85,8 @@ end
         c2: y in ZeroOne()
         c3: x + y <= 1.0
     """)
-    model = Cbc.Optimizer(
-        maxNodes=0, presolve="off", cuts="off", heur="off", logLevel=0)
+    model = Cbc.Optimizer(maxNodes = 0, presolve = "off", cuts = "off",
+                          heur = "off", logLevel = 0)
     MOI.copy_to(model, knapsack)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT

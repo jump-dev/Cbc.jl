@@ -50,42 +50,58 @@ end
 MOI.add_variable(::Optimizer) = throw(MOI.AddVariableNotAllowed())
 
 mutable struct CbcModelFormat
-    objective_constant::Float64
     num_rows::Int
     num_cols::Int
+    # (row_idx, col_idx, values) are the sparse elements of the constraint matrix.
     row_idx::Vector{Int}
     col_idx::Vector{Int}
     values::Vector{Float64}
-    col_lb::Vector{Float64}
-    col_ub::Vector{Float64}
-    obj::Vector{Float64}
+    # Constraint bounds.
     row_lb::Vector{Float64}
     row_ub::Vector{Float64}
+    # Variable bounds.
+    col_lb::Vector{Float64}
+    col_ub::Vector{Float64}
+    # Columns that are binary or integer
     binary::Vector{Int}
     integer::Vector{Int}
+    # Objective coefficients.
+    obj::Vector{Float64}
+    objective_constant::Float64
+
     function CbcModelFormat(num_rows::Integer, num_cols::Integer)
-        obj = fill(0.0, num_cols)
-        row_idx = Int[]
-        col_idx = Int[]
-        values = Float64[]
-        col_lb = fill(-Inf, num_cols)
-        col_ub = fill(Inf, num_cols)
-        row_lb = fill(-Inf, num_rows)
-        row_ub = fill(Inf, num_rows)
         # An `InexactError` might occur if `num_rows` or `num_cols` is too
-        # large, e.g., if `num_cols isa Int64` and is larger than 2^31 on a
-        # 32-bit hardware
-        new(0.0, num_rows, num_cols, row_idx, col_idx, values, col_lb, col_ub,
-            obj, row_lb, row_ub, Int[], Int[])
+        # large, e.g., if `num_cols isa Int64` and is larger than 2^31 on
+        # 32-bit hardware.
+        new(
+            num_rows,
+            num_cols,
+            Int[],  # row_idx
+            Int[],  # col_idx
+            Float64[],  # values
+            fill(-Inf, num_rows),  # row_lb
+            fill(Inf, num_rows),  # row_ub
+            fill(-Inf, num_cols),  # col_lb
+            fill(Inf, num_cols),  # col_ub
+            Int[],  # binary
+            Int[],  # integer
+            fill(0.0, num_cols),  # obj
+            0.0  # objective_constant
+        )
     end
 end
 
 ###
-### SingleVariable-in-{EqualTo, LessThan, GreaterThan, Interval, ZeroOne, Integer}
+### SingleVariable-in-{EqualTo,LessThan,GreaterThan,Interval,ZeroOne,Integer}
 ###
 
-column_value(map::MOIU.IndexMap, f::MOI.VariableIndex) = map.varmap[f].value
-column_value(map::MOIU.IndexMap, f::MOI.SingleVariable) = column_value(map, f.variable)
+function column_value(map::MOIU.IndexMap, index::MOI.VariableIndex)
+    return map.varmap[index].value
+end
+
+function column_value(map::MOIU.IndexMap, func::MOI.SingleVariable)
+    return column_value(map, func.variable)
+end
 
 function MOI.supports_constraint(
         ::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:Union{
@@ -97,49 +113,49 @@ end
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.SingleVariable, s::MOI.EqualTo)
-    column = column_value(mapping, f)
-    model.col_lb[column] = s.value
-    model.col_ub[column] = s.value
+        mapping::MOIU.IndexMap, func::MOI.SingleVariable, set::MOI.EqualTo)
+    column = column_value(mapping, func)
+    model.col_lb[column] = set.value
+    model.col_ub[column] = set.value
     return
 end
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.SingleVariable, s::MOI.LessThan)
-    column = column_value(mapping, f)
-    model.col_ub[column] = s.upper
+        mapping::MOIU.IndexMap, func::MOI.SingleVariable, set::MOI.LessThan)
+    column = column_value(mapping, func)
+    model.col_ub[column] = set.upper
     return
 end
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.SingleVariable, s::MOI.GreaterThan)
-    column = column_value(mapping, f)
-    model.col_lb[column] = s.lower
+        mapping::MOIU.IndexMap, func::MOI.SingleVariable, set::MOI.GreaterThan)
+    column = column_value(mapping, func)
+    model.col_lb[column] = set.lower
     return
 end
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.SingleVariable, s::MOI.Interval)
-    column = column_value(mapping, f)
-    model.col_lb[column] = s.lower
-    model.col_ub[column] = s.upper
+        mapping::MOIU.IndexMap, func::MOI.SingleVariable, set::MOI.Interval)
+    column = column_value(mapping, func)
+    model.col_lb[column] = set.lower
+    model.col_ub[column] = set.upper
     return
 end
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.SingleVariable, s::MOI.ZeroOne)
-    push!(model.binary, column_value(mapping, f))
+        mapping::MOIU.IndexMap, func::MOI.SingleVariable, ::MOI.ZeroOne)
+    push!(model.binary, column_value(mapping, func))
     return
 end
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.SingleVariable, s::MOI.Integer)
-    push!(model.integer, column_value(mapping, f))
+        mapping::MOIU.IndexMap, func::MOI.SingleVariable, ::MOI.Integer)
+    push!(model.integer, column_value(mapping, func))
     return
 end
 
@@ -156,10 +172,10 @@ end
 
 function add_terms(
         model::CbcModelFormat, mapping::MOIU.IndexMap,
-        ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S},
+        index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S},
         func::MOI.ScalarAffineFunction{Float64}) where {S}
     for term in func.terms
-        push!(model.row_idx, mapping.conmap[ci].value)
+        push!(model.row_idx, mapping.conmap[index].value)
         push!(model.col_idx, column_value(mapping, term.variable_index))
         push!(model.values, term.coefficient)
     end
@@ -167,40 +183,44 @@ function add_terms(
 end
 
 function load_constraint(
-        ci::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction, s::MOI.EqualTo)
-    add_terms(model, mapping, ci, f)
-    row = mapping.conmap[ci].value
-    model.row_lb[row] = s.value - f.constant
-    model.row_ub[row] = s.value - f.constant
+        index::MOI.ConstraintIndex, model::CbcModelFormat,
+        mapping::MOIU.IndexMap, func::MOI.ScalarAffineFunction,
+        set::MOI.EqualTo)
+    add_terms(model, mapping, index, func)
+    row = mapping.conmap[index].value
+    model.row_lb[row] = set.value - func.constant
+    model.row_ub[row] = set.value - func.constant
     return
 end
 
 function load_constraint(
-        ci::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction, s::MOI.GreaterThan)
-    add_terms(model, mapping, ci, f)
-    row = mapping.conmap[ci].value
-    model.row_lb[row] = s.lower - f.constant
+        index::MOI.ConstraintIndex, model::CbcModelFormat,
+        mapping::MOIU.IndexMap, func::MOI.ScalarAffineFunction,
+        set::MOI.GreaterThan)
+    add_terms(model, mapping, index, func)
+    row = mapping.conmap[index].value
+    model.row_lb[row] = set.lower - func.constant
     return
 end
 
 function load_constraint(
-        ci::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction, s::MOI.LessThan)
-    add_terms(model, mapping, ci, f)
-    row = mapping.conmap[ci].value
-    model.row_ub[row] = s.upper - f.constant
+        index::MOI.ConstraintIndex, model::CbcModelFormat,
+        mapping::MOIU.IndexMap, func::MOI.ScalarAffineFunction,
+        set::MOI.LessThan)
+    add_terms(model, mapping, index, func)
+    row = mapping.conmap[index].value
+    model.row_ub[row] = set.upper - func.constant
     return
 end
 
 function load_constraint(
-        ci::MOI.ConstraintIndex, model::CbcModelFormat,
-        mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction, s::MOI.Interval)
-    add_terms(model, mapping, ci, f)
-    row = mapping.conmap[ci].value
-    model.row_ub[row] = s.upper - f.constant
-    model.row_lb[row] = s.lower - f.constant
+        index::MOI.ConstraintIndex, model::CbcModelFormat,
+        mapping::MOIU.IndexMap, func::MOI.ScalarAffineFunction,
+        set::MOI.Interval)
+    add_terms(model, mapping, index, func)
+    row = mapping.conmap[index].value
+    model.row_ub[row] = set.upper - func.constant
+    model.row_lb[row] = set.lower - func.constant
     return
 end
 
@@ -230,23 +250,23 @@ function MOI.supports(
     return true
 end
 
-function load_objective(
-        model::CbcModelFormat, mapping::MOIU.IndexMap, f::MOI.ScalarAffineFunction)
+function load_objective(model::CbcModelFormat, mapping::MOIU.IndexMap,
+                        func::MOI.ScalarAffineFunction)
     # We need to increment values of objective function with += to handle
     # cases like $x_1 + x_2 + x_1$. This is safe because objective function
     # is initialized with zeros in the constructor and `load_objective` only
     # gets called once.
-    for term in f.terms
+    for term in func.terms
         column = column_value(mapping, term.variable_index)
         model.obj[column] += term.coefficient
     end
-    model.objective_constant = f.constant
+    model.objective_constant = func.constant
     return
 end
 
-function load_objective(
-        model::CbcModelFormat, mapping::MOIU.IndexMap, f::MOI.SingleVariable)
-    column = column_value(mapping, f)
+function load_objective(model::CbcModelFormat, mapping::MOIU.IndexMap,
+                        func::MOI.SingleVariable)
+    column = column_value(mapping, func)
     model.obj[column] = 1.0
     model.objective_constant = 0.0
     return
@@ -363,13 +383,13 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike;
     cbc_dest.objective_constant = tmp_model.objective_constant
 
     # Set the integer variables.
-    for idx in tmp_model.integer
-        CbcCI.setInteger(cbc_dest.inner, idx - 1)
+    for column in tmp_model.integer
+        CbcCI.setInteger(cbc_dest.inner, column - 1)
     end
 
     # Set the binary variables.
-    for idx in tmp_model.binary
-        CbcCI.setInteger(cbc_dest.inner, idx - 1)
+    for column in tmp_model.binary
+        CbcCI.setInteger(cbc_dest.inner, column - 1)
     end
 
     return MOIU.IndexMap(mapping.varmap, mapping.conmap)
@@ -407,20 +427,20 @@ function MOI.get(model::Optimizer, ::MOI.VariablePrimal,
 end
 
 function MOI.get(model::Optimizer, ::MOI.VariablePrimal,
-                 ref::Vector{MOI.VariableIndex})
+                 indices::Vector{MOI.VariableIndex})
     primal_solution = CbcCI.unsafe_getColSolution(model.inner)
-    return [primal_solution[vi.value] for vi in ref]
+    return [primal_solution[index.value] for index in indices]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, <:Any})
+                 index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, <:Any})
     primal_solution = CbcCI.unsafe_getRowActivity(model.inner)
-    return primal_solution[ci.value]
+    return primal_solution[index.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, <:Any})
-    return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(ci.value))
+                 index::MOI.ConstraintIndex{MOI.SingleVariable, <:Any})
+    return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))
 end
 
 function MOI.get(model::Optimizer, object::MOI.ResultCount)
