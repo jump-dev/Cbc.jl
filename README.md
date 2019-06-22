@@ -34,6 +34,16 @@ If you do not want BinaryProvider to download the default binaries on install se
 
 To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`.
 
+### Using with **JuMP**
+
+Use `Cbc.Optimizer` to use Cbc with JuMP or MathOptInterface:
+
+```julia
+using Cbc
+using JuMP
+model = Model(with_optimizer(Cbc.Optimizer, logLevel=1))
+```
+
 ### Using with **[MathProgBase]**
 
 Cbc provides a solver object that can be passed to ``mixintprog`` in MathProgBase (and used to create instances of the solver-independent ``AbstractMathProgModel`` type):
