@@ -34,19 +34,17 @@ If you do not want BinaryProvider to download the default binaries on install se
 
 To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`.
 
-### Using with **[MathProgBase]**
+### Using with **[JuMP](https://github.com/JuMP.jl)**
 
-Cbc provides a solver object that can be passed to ``mixintprog`` in MathProgBase (and used to create instances of the solver-independent ``AbstractMathProgModel`` type):
-
+Use `Cbc.Optimizer` to use Cbc with JuMP:
 ```julia
 using Cbc
-using MathProgBase
-mixintprog(..., CbcSolver(Option1=value1,Option2=value2,...))
+using JuMP
+model = Model(with_optimizer(Cbc.Optimizer, logLevel=1))
 ```
 
-see the MathProgBase documentation for further information.
-
 Options are solver-dependent, and unfortunately not well documented.
+
 The following options are likely to be the most useful:
 
 * ``seconds`` -- Solution timeout limit. (Must be a ``Float64``)
@@ -59,8 +57,6 @@ The following options are likely to be the most useful:
 
 The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt.
 
-In addition, we provide the julia-specific option ``check_warmstart`` which, if set to ``false``, will tell the wrapper to pass along the warmstart solution regardless of if it satisfies the constraints of the problem. The default value is ``true``.
-
 ### Using the C interface
 
 The low-level C interface is available in the ``CbcCInterface`` submodule:
@@ -71,4 +67,3 @@ using Cbc.CbcCInterface
 Using this interface is not recommended.
 
 [Cbc]: https://projects.coin-or.org/Cbc
-[MathProgBase]: https://github.com/JuliaOpt/MathProgBase.jl
