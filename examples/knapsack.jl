@@ -1,6 +1,6 @@
 using MathProgBase
 using Cbc
-using Compat.Test
+using Test
 
 function knapsack()
     f = Float64[3, 2, 3, 1, 2]
