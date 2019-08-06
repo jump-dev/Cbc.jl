@@ -121,9 +121,9 @@ function MOI.supports_constraint(
     return true
 end
 
-MOI.supports_constraint(o::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS1{Float64}}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS1{Float64}}) = true
 
-MOI.supports_constraint(o::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS2{Float64}}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS2{Float64}}) = true
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
