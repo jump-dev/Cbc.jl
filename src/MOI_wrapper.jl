@@ -242,7 +242,7 @@ function load_constraint(
         index::MOI.ConstraintIndex, model::CbcModelFormat,
         mapping::MOIU.IndexMap, func::MOI.VectorOfVariables,
         set::MOI.SOS1{Float64})
-    var_indices = [Int32(v.value) for v in func.variables]
+    var_indices = Int32[v.value for v in func.variables]
     push!(model.sos1_weights, set.weights)
     push!(model.sos1_indices, var_indices)
     return
@@ -433,7 +433,7 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike;
 
     # type 2
     for i in eachindex(tmp_model.sos2_weights)
-        CbcCI.addSOS(cbc_dest.inner, 1, Cint[1, length(tmp_model.sos2_weights[i])+1], tmp_model.sos2_indices[i], tmp_model.sos2_weights[i], 2)
+        CbcCI.addSOS(cbc_dest.inner, 1, Cint[1, length(tmp_model.sos2_weights[i]) + 1], tmp_model.sos2_indices[i], tmp_model.sos2_weights[i], 2)
     end
 
     return MOIU.IndexMap(mapping.varmap, mapping.conmap)
