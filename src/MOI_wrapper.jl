@@ -513,3 +513,12 @@ function MOI.add_constraint(o::Optimizer, func::MOI.VectorOfVariables, set::MOI.
     addSOS(o.inner, 1, Cint[1,length(var_indices)+1], var_indices, set.weights, 1)
     return ci
 end
+
+MOI.supports_constraint(o::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS2{Float64}}) = true
+
+function MOI.add_constraint(o::Optimizer, func::MOI.VectorOfVariables, set::MOI.SOS2{Float64})
+    ci = MOI.ConstraintIndex{MOI.VectorOfVariables, MOI.SOS2{Float64}}(33)
+    var_indices = [v.value for v in func.variables]
+    addSOS(o.inner, 1, Cint[1,length(var_indices)+1], var_indices, set.weights, 2)
+    return ci
+end
