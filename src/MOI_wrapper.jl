@@ -47,8 +47,6 @@ function MOI.is_empty(model::Optimizer)
         CbcCI.getNumRows(model.inner) == 0
 end
 
-MOI.add_variable(::Optimizer) = throw(MOI.AddVariableNotAllowed())
-
 mutable struct CbcModelFormat
     num_rows::Int
     num_cols::Int
