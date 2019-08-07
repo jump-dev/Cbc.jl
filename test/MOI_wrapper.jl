@@ -71,9 +71,7 @@ end
 end
 
 @testset "intlineartest" begin
-    MOIT.intlineartest(OPTIMIZER, CONFIG, [
-        "int2"  # Requires Special-Ordered-Sets
-    ])
+    MOIT.intlineartest(OPTIMIZER, CONFIG)
 end
 
 @testset "Test params" begin

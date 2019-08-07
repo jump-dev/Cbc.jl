@@ -63,6 +63,12 @@ mutable struct CbcModelFormat
     # Columns that are binary or integer
     binary::Vector{Int}
     integer::Vector{Int}
+    # SOS1 constraints
+    sos1_weights::Vector{Vector{Float64}}
+    sos1_indices::Vector{Vector{Int32}}
+    # SOS2 constraints
+    sos2_weights::Vector{Vector{Float64}}
+    sos2_indices::Vector{Vector{Int32}}
     # Objective coefficients.
     obj::Vector{Float64}
     objective_constant::Float64
@@ -83,6 +89,10 @@ mutable struct CbcModelFormat
             fill(Inf, num_cols),  # col_ub
             Int[],  # binary
             Int[],  # integer
+            Vector{Vector{Float64}}(), # SOS1 weights
+            Vector{Vector{Int32}}(),     # SOS1 column indices
+            Vector{Vector{Float64}}(), # SOS2 weights
+            Vector{Vector{Int32}}(),     # SOS2 column indices
             fill(0.0, num_cols),  # obj
             0.0  # objective_constant
         )
@@ -108,6 +118,10 @@ function MOI.supports_constraint(
             MOI.ZeroOne, MOI.Integer}})
     return true
 end
+
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS1{Float64}}) = true
+
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SOS2{Float64}}) = true
 
 function load_constraint(
         ::MOI.ConstraintIndex, model::CbcModelFormat,
@@ -222,6 +236,25 @@ function load_constraint(
     return
 end
 
+function load_constraint(
+        index::MOI.ConstraintIndex, model::CbcModelFormat,
+        mapping::MOIU.IndexMap, func::MOI.VectorOfVariables,
+        set::MOI.SOS1{Float64})
+    var_indices = Int32[v.value for v in func.variables]
+    push!(model.sos1_weights, set.weights)
+    push!(model.sos1_indices, var_indices)
+    return
+end
+
+function load_constraint(
+        index::MOI.ConstraintIndex, model::CbcModelFormat,
+        mapping::MOIU.IndexMap, func::MOI.VectorOfVariables,
+        set::MOI.SOS2{Float64})
+    var_indices = [v.value for v in func.variables]
+    push!(model.sos2_weights, set.weights)
+    push!(model.sos2_indices, var_indices)
+    return
+end
 
 ###
 ### ObjectiveSense
@@ -388,6 +421,17 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike;
     # Set the binary variables.
     for column in tmp_model.binary
         CbcCI.setInteger(cbc_dest.inner, column - 1)
+    end
+
+    # SOS constraints
+    # type 1
+    for i in eachindex(tmp_model.sos1_weights)
+        CbcCI.addSOS(cbc_dest.inner, 1, Cint[1, length(tmp_model.sos1_weights[i]) + 1], tmp_model.sos1_indices[i], tmp_model.sos1_weights[i], 1)
+    end
+
+    # type 2
+    for i in eachindex(tmp_model.sos2_weights)
+        CbcCI.addSOS(cbc_dest.inner, 1, Cint[1, length(tmp_model.sos2_weights[i]) + 1], tmp_model.sos2_indices[i], tmp_model.sos2_weights[i], 2)
     end
 
     return MOIU.IndexMap(mapping.varmap, mapping.conmap)
