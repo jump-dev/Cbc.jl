@@ -9,6 +9,7 @@ using SparseArrays
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::CbcCI.CbcModel
+    silent::Bool
     # Cache the params so they can be reset on `empty!`.
     params::Dict{String, String}
     # Cache the objective constant (if there is one).
@@ -21,13 +22,66 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     """
     function Optimizer(; kwargs...)
         model = CbcCI.CbcModel()
-        params = Dict{String, String}()
-        # If an unknown argument is passed to kwargs..., Cbc will ignore it.
-        for (name, value) in kwargs
-            params[string(name)] = string(value)
-            CbcCI.setParameter(model, string(name), string(value))
+        optimizer = new(model, false, Dict{String, String}(), 0.0)
+        for (key, value) in kwargs
+            MOI.set(optimizer, MOI.RawParameter(key), value)
         end
-        return new(model, params, 0.0)
+        return optimizer
+    end
+end
+
+function MOI.supports(optimizer::Optimizer, param::MOI.RawParameter)
+    # FIXME find a way to check if `param.name` is recognized by Cbc
+    #       a list of parameters can be obtained by running `cbc`
+    #       and issuing the command `???` to the CLI.
+    #       We could make a `Set` out of this list but it would be
+    #       better to have a Cbc `hasParameter` to the Cbc C API.
+    return true
+end
+function MOI.set(optimizer::Optimizer, param::MOI.RawParameter, value)
+    if !MOI.supports(optimizer, param)
+        throw(MOI.UnsupportedAttribute(param))
+    end
+    name = string(param.name)
+    optimizer.params[name] = string(value)
+    if !(optimizer.silent && name == "logLevel")
+        CbcCI.setParameter(optimizer.inner, name, string(value))
+    end
+end
+function MOI.get(optimizer::Optimizer, param::MOI.RawParameter)
+    # TODO: This gives a poor error message if the name of the parameter is invalid.
+    return optimizer.params[param.name]
+end
+
+MOI.supports(::Optimizer, ::MOI.Silent) = true
+function MOI.set(optimizer::Optimizer, ::MOI.Silent, value::Bool)
+    if value != optimizer.silent
+        if value
+            CbcCI.setParameter(optimizer.inner, "logLevel", "0")
+        else
+            log_level = get(optimizer.params, "logLevel", "1")
+            CbcCI.setParameter(optimizer.inner, "logLevel", log_level)
+        end
+    end
+    optimizer.silent = value
+end
+MOI.get(optimizer::Optimizer, ::MOI.Silent) = optimizer.silent
+
+MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = true
+function MOI.set(optimizer::Optimizer, ::MOI.TimeLimitSec, value)
+    if value === nothing
+        delete!(optimizer.params, "seconds")
+        CbcCI.setParameter(optimizer.inner, "seconds", "??")
+    else
+        MOI.set(optimizer, MOI.RawParameter("seconds"), value)
+    end
+end
+function MOI.get(optimizer::Optimizer, ::MOI.TimeLimitSec)
+    value = get(optimizer.params, "seconds", nothing)
+    if value === nothing
+        return value
+    else
+        return parse(Float64, value)
     end
 end
 
@@ -38,6 +92,9 @@ function MOI.empty!(model::Optimizer)
     model.objective_constant = 0.0
     for (name, value) in model.params
         CbcCI.setParameter(model.inner, name, value)
+    end
+    if model.silent
+        CbcCI.setParameter(model.inner, "logLevel", "0")
     end
     return
 end
@@ -506,6 +563,23 @@ function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
     end
 end
 
+struct Status <: MOI.AbstractModelAttribute end
+# If we don't define this method, the `CachingOptimizer` will redirect the call
+# to the cache instead of the optimizer.
+MOI.is_set_by_optimize(::Status) = true
+
+struct SecondaryStatus <: MOI.AbstractModelAttribute end
+MOI.is_set_by_optimize(::SecondaryStatus) = true
+
+MOI.get(model::Optimizer, ::Status) = CbcCI.status(model.inner)
+MOI.get(model::Optimizer, ::SecondaryStatus) = CbcCI.secondaryStatus(model.inner)
+
+function MOI.get(model::Optimizer, ::MOI.RawStatusString)
+    # FIXME We should do something more helpful here
+    return string("status = ", MOI.get(model, Status()),
+                  ", secondaryStatus = ", MOI.get(model, SecondaryStatus()))
+end
+
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     if CbcCI.isProvenInfeasible(model.inner)
         return MOI.INFEASIBLE
@@ -526,9 +600,8 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     elseif CbcCI.optimizeNotCalled(model.inner)
         return MOI.OPTIMIZE_NOT_CALLED
     else
-        error("Internal error: Unrecognized solution status:",
-              " status = $(status(model.inner)),",
-              " secondaryStatus = $(secondaryStatus(model.inner))")
+        error("Internal error: Unrecognized solution status: ",
+              MOI.get(model, MOI.RawStatusString()))
     end
 end
 

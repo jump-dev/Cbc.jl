@@ -1,81 +1,84 @@
-using Cbc, Test, MathOptInterface
+using Test, MathOptInterface
 
 const MOI = MathOptInterface
 const MOIT = MOI.Test
 const MOIU = MOI.Utilities
 
-@MOIU.model(ModelForCachingOptimizer,
-    (MOI.ZeroOne, MOI.Integer),
-    (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
-    (),
-    (),
-    (MOI.SingleVariable,),
-    (MOI.ScalarAffineFunction,),
-    (),
-    ()
-)
+import Cbc
+const OPTIMIZER = Cbc.Optimizer()
+MOI.set(OPTIMIZER, MOI.Silent(), true)
 
-const OPTIMIZER = MOIU.CachingOptimizer(
-    MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}()),
-    Cbc.Optimizer(logLevel = 0)
-)
+@testset "SolverName" begin
+    @test MOI.get(OPTIMIZER, MOI.SolverName()) == "COIN Branch-and-Cut (Cbc)"
+end
+
+@testset "supports_default_copy_to" begin
+    @test !MOIU.supports_allocate_load(OPTIMIZER, false)
+    @test !MOIU.supports_allocate_load(OPTIMIZER, true)
+    @test !MOIU.supports_default_copy_to(OPTIMIZER, false)
+    @test !MOIU.supports_default_copy_to(OPTIMIZER, true)
+end
+
+const CACHE = MOIU.UniversalFallback(MOIU.Model{Float64}())
+const CACHED = MOIU.CachingOptimizer(CACHE, OPTIMIZER)
+const BRIDGED = MOI.Bridges.full_bridge_optimizer(CACHED, Float64)
 
 const CONFIG = MOIT.TestConfig(duals = false, infeas_certificates = false)
 
 @testset "basic_constraint_tests" begin
-    MOIT.basic_constraint_tests(OPTIMIZER, CONFIG)
+    MOIT.basic_constraint_tests(CACHED, CONFIG)
 end
 
-@testset "Unit Tests" begin
-    MOIT.unittest(OPTIMIZER, CONFIG, [
-        "solve_affine_deletion_edge_cases",  # VectorAffineFunction
-        "solve_duplicate_terms_vector_affine",  # VectorAffineFunction
+@testset "Unit" begin
+    MOIT.unittest(BRIDGED, CONFIG, [
+        "solve_time", # FIXME implement `MOI.SolveTime`
+        "solve_unbounded_model", # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
         "solve_qcp_edge_cases", "solve_qp_edge_cases"  # No quadratics
     ])
 end
 
-@testset "ModelLike tests" begin
-    @test MOI.get(OPTIMIZER, MOI.SolverName()) == "COIN Branch-and-Cut (Cbc)"
+@testset "ModelLike" begin
+    @test MOI.get(CACHED, MOI.SolverName()) == "COIN Branch-and-Cut (Cbc)"
     @testset "default_objective_test" begin
-         MOIT.default_objective_test(OPTIMIZER)
+         MOIT.default_objective_test(CACHED)
      end
      @testset "default_status_test" begin
-         MOIT.default_status_test(OPTIMIZER)
+         MOIT.default_status_test(CACHED)
      end
     @testset "nametest" begin
-        MOIT.nametest(OPTIMIZER)
+        MOIT.nametest(CACHED)
     end
     @testset "validtest" begin
-        MOIT.validtest(OPTIMIZER)
+        MOIT.validtest(CACHED)
     end
     @testset "emptytest" begin
         # Requires VectorOfVariables
-        # MOIT.emptytest(OPTIMIZER)
+        # MOIT.emptytest(CACHED)
     end
     @testset "orderedindicestest" begin
-        MOIT.orderedindicestest(OPTIMIZER)
+        MOIT.orderedindicestest(CACHED)
     end
     @testset "copytest" begin
         # Requires VectorOfVariables
-        # MOIT.copytest(OPTIMIZER, MOIU.CachingOptimizer(
+        # MOIT.copytest(CACHED, MOIU.CachingOptimizer(
         #     ModelForCachingOptimizer{Float64}(),
         #     Cbc.Optimizer()
         # ))
     end
 end
 
-@testset "contlineartest" begin
-    MOIT.contlineartest(OPTIMIZER, CONFIG, [
-        "linear7", "linear15"  # VectorAffineFunction
+@testset "Continuous Linear" begin
+    MOIT.contlineartest(BRIDGED, CONFIG)
+end
+
+@testset "Integer Linear" begin
+    MOIT.intlineartest(BRIDGED, CONFIG, [
+        "indicator1", "indicator2", "indicator3"
     ])
 end
 
-@testset "intlineartest" begin
-    MOIT.intlineartest(OPTIMIZER, CONFIG)
-end
-
 @testset "Test params" begin
-    knapsack_model = ModelForCachingOptimizer{Float64}()
+    knapsack_model = MOIU.Model{Float64}()
     MOIU.loadfromstring!(knapsack_model, """
         variables: x, y
         maxobjective: x + y
