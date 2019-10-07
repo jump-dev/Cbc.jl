@@ -31,9 +31,10 @@ end
 
 @testset "Unit" begin
     MOIT.unittest(BRIDGED, CONFIG, [
+        "number_threads", # FIXME implement `MOI.NumberOfThreads`
         "solve_time", # FIXME implement `MOI.SolveTime`
         "solve_unbounded_model", # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
-        "solve_qcp_edge_cases", "solve_qp_edge_cases"  # No quadratics
+        "delete_soc_variables", "solve_qcp_edge_cases", "solve_qp_edge_cases"  # No quadratics
     ])
 end
 
