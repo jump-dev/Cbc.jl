@@ -611,8 +611,9 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
-    MOI.check_result_index_bounds(model, attr)
-    if CbcCI.isProvenOptimal(model.inner) ||
+    if attr.N > MOI.get(model, MOI.ResultCount())
+        return MOI.NO_SOLUTION
+    elseif CbcCI.isProvenOptimal(model.inner) ||
             CbcCI.isInitialSolveProvenOptimal(model.inner)
         return MOI.FEASIBLE_POINT
     elseif CbcCI.isProvenInfeasible(model.inner)
@@ -623,6 +624,5 @@ function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.DualStatus)
-    MOI.check_result_index_bounds(model, attr)
     return MOI.NO_SOLUTION
 end
