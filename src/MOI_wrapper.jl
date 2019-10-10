@@ -515,30 +515,35 @@ function MOI.get(model::Optimizer, ::MOI.NodeCount)
     return CbcCI.getNodeCount(model.inner)
 end
 
-function MOI.get(model::Optimizer, ::MOI.ObjectiveValue)
+function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
+    MOI.check_result_index_bounds(model, attr)
     return CbcCI.getObjValue(model.inner) + model.objective_constant
 end
 
-function MOI.get(model::Optimizer, ::MOI.VariablePrimal,
+function MOI.get(model::Optimizer, attr::MOI.VariablePrimal,
                  ref::MOI.VariableIndex)
+    MOI.check_result_index_bounds(model, attr)
     primal_solution = CbcCI.unsafe_getColSolution(model.inner)
     return primal_solution[ref.value]
 end
 
-function MOI.get(model::Optimizer, ::MOI.VariablePrimal,
+function MOI.get(model::Optimizer, attr::MOI.VariablePrimal,
                  indices::Vector{MOI.VariableIndex})
+    MOI.check_result_index_bounds(model, attr)
     primal_solution = CbcCI.unsafe_getColSolution(model.inner)
     return [primal_solution[index.value] for index in indices]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, attr::MOI.ConstraintPrimal,
                  index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, <:Any})
+    MOI.check_result_index_bounds(model, attr)
     primal_solution = CbcCI.unsafe_getRowActivity(model.inner)
     return primal_solution[index.value]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, attr::MOI.ConstraintPrimal,
                  index::MOI.ConstraintIndex{MOI.SingleVariable, <:Any})
+    MOI.check_result_index_bounds(model, attr)
     return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))
 end
 
@@ -605,8 +610,10 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     end
 end
 
-function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
-    if CbcCI.isProvenOptimal(model.inner) ||
+function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
+    if attr.N > MOI.get(model, MOI.ResultCount())
+        return MOI.NO_SOLUTION
+    elseif CbcCI.isProvenOptimal(model.inner) ||
             CbcCI.isInitialSolveProvenOptimal(model.inner)
         return MOI.FEASIBLE_POINT
     elseif CbcCI.isProvenInfeasible(model.inner)
@@ -616,6 +623,6 @@ function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
     end
 end
 
-function MOI.get(::Optimizer, ::MOI.DualStatus)
+function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     return MOI.NO_SOLUTION
 end

@@ -13,7 +13,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 BinaryProvider = "0.5.3"
-MathOptInterface = "0.9.1"
+MathOptInterface = "0.9.5"
 MathProgBase = "~0.5.5, ~0.6, ~0.7"
 julia = "1"
 
