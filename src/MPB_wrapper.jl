@@ -194,36 +194,8 @@ MPB.getsolution(m::CbcMathProgModel) = getColSolution(m.inner)
 MPB.getrawsolver(m::CbcMathProgModel) = m.inner
 
 function MPB.setwarmstart!(m::CbcMathProgModel, v)
-    if any(isnan, v)
-        @warn("Ignoring partial starting solution. Cbc requires a feasible " *
-              "value to be specified for all variables.", maxlog = 1)
-        return
-    end
-
-    # ignore if not feasible
-    if m.check_warmstart
-        @assert length(v) == MPB.numvar(m)
-        l = getColLower(m.inner)
-        u = getColUpper(m.inner)
-        for i in 1:length(v)
-            if !(l[i] - 1e-6 <= v[i] <= u[i] + 1e-6)
-                return
-            end
-            if isInteger(m.inner, i-1) && !isinteger(l[i])
-                return
-            end
-        end
-        lb = getRowLower(m.inner)
-        ub = getRowUpper(m.inner)
-        A = MPB.getconstrmatrix(m)
-        rowval = A*v
-        for i in 1:MPB.numconstr(m)
-            if !(lb[i] - 1e-6 <= rowval[i] <= ub[i] + 1e-6)
-                return
-            end
-        end
-    end
-    setInitialSolution(m.inner, v)
+    columns = Cint.(findall(!isnan, v))
+    setMIPStartI(m.inner, columns .- Cint(1), v[columns])
 end
 
 function MPB.addsos1!(m::CbcMathProgModel, idx, weight::Vector{Float64})
