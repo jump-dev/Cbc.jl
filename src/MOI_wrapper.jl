@@ -14,6 +14,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     params::Dict{String, String}
     # Cache the objective constant (if there is one).
     objective_constant::Float64
+    # Starting values for variable
+    variable_start::Dict{MOI.VariableIndex, Float64}
 
     """
         Optimizer(; kwargs...)
@@ -22,7 +24,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     """
     function Optimizer(; kwargs...)
         model = CbcCI.CbcModel()
-        optimizer = new(model, false, Dict{String, String}(), 0.0)
+        optimizer = new(model, false, Dict{String, String}(), 0.0, Dict{MOI.VariableIndex, Float64}())
         for (key, value) in kwargs
             MOI.set(optimizer, MOI.RawParameter(key), value)
         end
@@ -96,6 +98,7 @@ function MOI.empty!(model::Optimizer)
     if model.silent
         CbcCI.setParameter(model.inner, "logLevel", "0")
     end
+    empty!(model.variable_start)
     return
 end
 
@@ -361,6 +364,21 @@ function load_objective(model::CbcModelFormat, mapping::MOIU.IndexMap,
 end
 
 ###
+### Variable starting values
+###
+
+MOI.supports(::Optimizer, ::MOI.VariablePrimalStart, ::Type{MOI.VariableIndex}) = true
+function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart, variable::MOI.VariableIndex, value::Nothing)
+    delete!(model.variable_start, variable)
+end
+function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart, variable::MOI.VariableIndex, value)
+    model.variable_start[variable] = value
+end
+function MOI.get(model::Optimizer, ::MOI.VariablePrimalStart, variable::MOI.VariableIndex, value)
+    return get(model.variable_start, variable, nothing)
+end
+
+###
 ### This main copy_to function.
 ###
 
@@ -455,9 +473,6 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike;
         src, MOI.ObjectiveFunction{objective_function_type}())
     load_objective(tmp_model, mapping, objective_function)
 
-    sense = MOI.get(src, MOI.ObjectiveSense())
-    MOI.set(cbc_dest, MOI.ObjectiveSense(), sense)
-
     # Load the problem into Cbc.
     CbcCI.loadProblem(
         cbc_dest.inner,
@@ -467,6 +482,28 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike;
         tmp_model.obj,
         tmp_model.row_lb, tmp_model.row_ub
     )
+
+    MOIU.pass_attributes(cbc_dest, src, copy_names, mapping, MOI.get(src, MOI.ListOfVariableIndices()))
+
+    for attr in MOI.get(src, MOI.ListOfModelAttributesSet())
+        if attr isa MOI.ObjectiveFunction
+            # Already copied
+            continue
+        end
+        if !copy_names && attr isa MOI.Name
+            continue
+        end
+        value = MOI.get(src, attr)
+        if value !== nothing
+            mapped_value = MOIU.map_indices(mapping, value)
+            MOI.set(cbc_dest, attr, mapped_value)
+        end
+    end
+
+    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
+        cis_src = MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+        MOIU.pass_attributes(cbc_dest, src, copy_names, mapping, cis_src)
+    end
 
     cbc_dest.objective_constant = tmp_model.objective_constant
 
@@ -499,6 +536,17 @@ end
 ###
 
 function MOI.optimize!(model::Optimizer)
+    if !isempty(model.variable_start)
+        columns = Cint[]
+        values = Float64[]
+        for (variable, value) in model.variable_start
+            push!(columns, variable.value - 1)
+            push!(values, value)
+        end
+        # FIXME in https://github.com/JuliaOpt/Cbc.jl/pull/128/
+        # CbcCI.setMIPStartI(model.inner, columns, values)
+        error("Starting values for variable primal coming to the next release!")
+    end
     CbcCI.solve(model.inner)
     return
 end
