@@ -9,6 +9,7 @@ export CbcModel,
     readMps,
     writeMps,
     setInitialSolution,
+    setMIPStartI,
     problemName,
     setProblemName,
     getNumElements,
@@ -166,6 +167,11 @@ end
 function setInitialSolution(prob::CbcModel, array::Vector{Float64})
     check_problem(prob)
     @cbc_ccall setInitialSolution Cvoid (Ptr{Cvoid}, Ptr{Float64}) prob array
+end
+
+function setMIPStartI(prob::CbcModel, columns::Vector{Cint}, array::Vector{Float64})
+    check_problem(prob)
+    @cbc_ccall setMIPStartI Cvoid (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Float64}) prob length(columns) columns array
 end
 
 function problemName(prob::CbcModel)

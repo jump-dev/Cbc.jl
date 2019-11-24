@@ -543,9 +543,7 @@ function MOI.optimize!(model::Optimizer)
             push!(columns, variable.value - 1)
             push!(values, value)
         end
-        # FIXME in https://github.com/JuliaOpt/Cbc.jl/pull/128/
-        # CbcCI.setMIPStartI(model.inner, columns, values)
-        error("Starting values for variable primal coming to the next release!")
+        CbcCI.setMIPStartI(model.inner, columns, values)
     end
     CbcCI.solve(model.inner)
     return
