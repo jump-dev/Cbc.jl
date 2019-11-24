@@ -69,16 +69,12 @@ end
 end
 
 @testset "Continuous Linear" begin
-    MOIT.contlineartest(BRIDGED, CONFIG,
-                        # FIXME starting values
-                        ["partial_start"])
+    MOIT.contlineartest(BRIDGED, CONFIG)
 end
 
 @testset "Integer Linear" begin
     MOIT.intlineartest(BRIDGED, CONFIG, [
-        "indicator1", "indicator2", "indicator3", "indicator4",
-        # FIXME starting values
-        "knapsack"
+        "indicator1", "indicator2", "indicator3", "indicator4"
     ])
 end
 
