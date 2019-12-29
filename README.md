@@ -34,7 +34,7 @@ If you do not want BinaryProvider to download the default binaries on install se
 
 To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`.
 
-### Using with **[JuMP](https://github.com/JuMP.jl)**
+### Using with **[JuMP](https://github.com/JuliaOpt/JuMP.jl)**
 
 Use `Cbc.Optimizer` to use Cbc with JuMP:
 ```julia
