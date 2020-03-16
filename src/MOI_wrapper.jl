@@ -231,6 +231,21 @@ function load_constraint(
     return
 end
 
+function load_constraints(
+        model::CbcModelFormat, src::MOI.ModelLike,
+        mapping::MOIU.IndexMap, F::Type{<:MOI.AbstractFunction},
+        S::Type{<:MOI.AbstractSet})
+    for index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+        load_constraint(
+            index,
+            model,
+            mapping,
+            MOI.get(src, MOI.ConstraintFunction(), index),
+            MOI.get(src,  MOI.ConstraintSet(), index)
+        )
+    end
+end
+
 ###
 ### ScalarAffineFunction-in-{EqualTo, LessThan, GreaterThan, Interval}
 ###
@@ -382,6 +397,24 @@ end
 ### This main copy_to function.
 ###
 
+function create_constraint_indices_for_types(src::MOI.ModelLike, mapping::MOIU.IndexMap,
+        ::Type{MOI.SingleVariable}, S::Type{<:MOI.AbstractSet}, num_rows::Int)
+    for index in MOI.get(src, MOI.ListOfConstraintIndices{MOI.SingleVariable, S}())
+        c_func = MOI.get(src, MOI.ConstraintFunction(), index)
+        column = mapping.varmap[c_func.variable].value
+        mapping.conmap[index] = MOI.ConstraintIndex{MOI.SingleVariable, S}(column)
+    end
+    return num_rows
+end
+function create_constraint_indices_for_types(src::MOI.ModelLike, mapping::MOIU.IndexMap,
+        F::Type{<:MOI.AbstractFunction}, S::Type{<:MOI.AbstractSet}, num_rows::Int)
+    for index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+        num_rows += 1
+        mapping.conmap[index] = MOI.ConstraintIndex{F, S}(num_rows)
+    end
+    return num_rows
+end
+
 """
     create_constraint_indices(src::MOI.ModelLike, mapping::MOIU.IndexMap)
 
@@ -395,16 +428,9 @@ Create a new set of constraint indices. Importantly:
 function create_constraint_indices(src::MOI.ModelLike, mapping::MOIU.IndexMap)
     num_rows = 0
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        for index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-            if F == MOI.SingleVariable
-                c_func = MOI.get(src, MOI.ConstraintFunction(), index)
-                column = mapping.varmap[c_func.variable].value
-                mapping.conmap[index] = MOI.ConstraintIndex{F, S}(column)
-            else
-                num_rows += 1
-                mapping.conmap[index] = MOI.ConstraintIndex{F, S}(num_rows)
-            end
-        end
+        # The type of `F` and `S` is not type-stable, so we use a function
+        # barrier (`create_constraint_indices_for_types`) to improve performance.
+        num_rows = create_constraint_indices_for_types(src, mapping, F, S, num_rows)
     end
     return num_rows
 end
@@ -446,15 +472,9 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike;
 
     # Copy the constraints out of `src` into `tmp_model`.
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        for index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-            load_constraint(
-                index,
-                tmp_model,
-                mapping,
-                MOI.get(src, MOI.ConstraintFunction(), index),
-                MOI.get(src,  MOI.ConstraintSet(), index)
-            )
-        end
+        # The type of `F` and `S` is not type-stable, so we use a function
+        # barrier (`load_constraints`) to improve performance.
+        load_constraints(tmp_model, src, mapping, F, S)
     end
 
     # Since Cbc doesn't have an explicit binary variable, we need to add [0, 1]
