@@ -74,7 +74,9 @@ end
 
 @testset "Integer Linear" begin
     MOIT.intlineartest(BRIDGED, CONFIG, [
-        "indicator1", "indicator2", "indicator3", "indicator4"
+        "indicator1", "indicator2", "indicator3", "indicator4",
+        # TODO reenable when https://github.com/JuliaOpt/MathOptInterface.jl/issues/897 is resolved
+        "semiconttest", "semiinttest"
     ])
 end
 
