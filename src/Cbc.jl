@@ -5,10 +5,14 @@ module Cbc
 # bicycle1885/CodecZlib.jl#26.
 using Libdl
 
-if isfile(joinpath(@__DIR__, "..", "deps", "deps.jl"))
-    include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
+if haskey(ENV,"JULIA_CBC_LIBRARY_PATH") || VERSION < v"1.3"
+    if isfile(joinpath(@__DIR__, "..", "deps", "deps.jl"))
+        include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
+    else
+        error("Cbc not properly installed. Please run Pkg.build(\"Cbc\")")
+    end
 else
-    error("Cbc not properly installed. Please run Pkg.build(\"Cbc\")")
+    import Cbc_jll: libcbcsolver
 end
 
 include("CbcCInterface.jl")
