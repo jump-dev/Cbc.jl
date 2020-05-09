@@ -4,8 +4,8 @@
 
 `Cbc.jl` is an interface to the **[COIN-OR Branch and Cut](https://projects.coin-or.org/Cbc)**
 solver. It provides a complete interface to the low-level C API, as well as an
-implementation of the solver-independent `MathProgBase` and `MathOptInterface`
-API's.   
+implementation of the solver-independent `MathOptInterface`
+API's
 
 *Note: This wrapper is maintained by the JuliaOpt community and is not a COIN-OR
 project.*
@@ -15,7 +15,7 @@ project.*
 
 ## Installation
 
-The package is registered in `METADATA.jl` and so can be installed with `Pkg.add`.
+The package can be installed with `Pkg.add`.
 
 ```
 julia> import Pkg; Pkg.add("Cbc")
@@ -40,7 +40,8 @@ Use `Cbc.Optimizer` to use Cbc with JuMP:
 ```julia
 using Cbc
 using JuMP
-model = Model(with_optimizer(Cbc.Optimizer, logLevel=1))
+model = Model(Cbc.Optimizer)
+set_optimizer_attribute(model, "logLevel", 1)
 ```
 
 Options are solver-dependent, and unfortunately not well documented.
@@ -56,14 +57,5 @@ The following options are likely to be the most useful:
 * ``threads`` -- Set the number of threads to use for parallel branch & bound
 
 The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt.
-
-### Using the C interface
-
-The low-level C interface is available in the ``CbcCInterface`` submodule:
-```julia
-using Cbc.CbcCInterface
-```
-
-Using this interface is not recommended.
 
 [Cbc]: https://projects.coin-or.org/Cbc
