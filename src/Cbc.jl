@@ -1,10 +1,12 @@
 module Cbc
 
 if haskey(ENV,"JULIA_CBC_LIBRARY_PATH") || VERSION < v"1.3"
-    if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
-        include("../deps/deps.jl")
+    deps_file = joinpath(dirname(@__DIR__), "deps", "deps.jl")
+    if isfile(deps_file)
+        using Libdl
+        include(deps_file)
     else
-        error("Cbc not properly installed. Please run import Pkg; Pkg.build(\"Cbc\")")
+        error("Cbc not properly installed. Please run import `Pkg; Pkg.build(\"Cbc\")`.")
     end
 else
     import Cbc_jll: libcbcsolver
@@ -27,7 +29,7 @@ if !(v"2.10.0" <= _CBC_VERSION <= v"2.10.5")
     )
 end
 
-include("moi/MOI_wrapper.jl")
+include("MOI/MOI_wrapper.jl")
 
 # TODO(odow): remove at Cbc.jl v1.0.0.
 function CbcSolver(args...; kwargs...)
