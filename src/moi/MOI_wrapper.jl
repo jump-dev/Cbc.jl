@@ -7,8 +7,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Ptr{Cvoid}
     silent::Bool
     params::Dict{String, String}
-    objective_constant::Float64
     variable_start::Dict{MOI.VariableIndex, Float64}
+    objective_constant::Float64
+    solve_time::Float64
 
     """
         Optimizer(; kwargs...)
@@ -16,80 +17,77 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     Create a new Cbc Optimizer.
     """
     function Optimizer(; kwargs...)
-        model = Cbc_newModel()
-        optimizer = new(
-            model,
+        model = new(
+            Cbc_newModel(),
             false,
             Dict{String, String}(),
+            Dict{MOI.VariableIndex, Float64}(),
             0.0,
-            Dict{MOI.VariableIndex, Float64}()
+            0.0,
         )
         for (key, value) in kwargs
-            MOI.set(optimizer, MOI.RawParameter(key), value)
+            MOI.set(model, MOI.RawParameter(key), value)
         end
-        finalizer(optimizer) do m
+        finalizer(model) do m
             Cbc_deleteModel(m.inner)
         end
-        return optimizer
+        return model
     end
 end
 
-function MOI.supports(optimizer::Optimizer, param::MOI.RawParameter)
-    # FIXME find a way to check if `param.name` is recognized by Cbc
-    #       a list of parameters can be obtained by running `cbc`
-    #       and issuing the command `???` to the CLI.
-    #       We could make a `Set` out of this list but it would be
-    #       better to have a Cbc `hasParameter` to the Cbc C API.
+function MOI.supports(::Optimizer, ::MOI.RawParameter)
+    # TODO(odow): There is no programatical way throught the C API to check if a
+    # parameter name (or value) is valid. Fix this upstream.
     return true
 end
 
-function MOI.set(optimizer::Optimizer, param::MOI.RawParameter, value)
-    return MOI.set(optimizer, param, string(value))
+function MOI.set(model::Optimizer, param::MOI.RawParameter, value)
+    return MOI.set(model, param, string(value))
 end
 
-function MOI.set(optimizer::Optimizer, param::MOI.RawParameter, value::String)
-    if !MOI.supports(optimizer, param)
+function MOI.set(model::Optimizer, param::MOI.RawParameter, value::String)
+    if !MOI.supports(model, param)
         throw(MOI.UnsupportedAttribute(param))
     end
     name = string(param.name)
-    optimizer.params[name] = value
-    if !(optimizer.silent && name == "logLevel")
-        Cbc_setParameter(optimizer.inner, name, value)
+    model.params[name] = value
+    if !(model.silent && name == "logLevel")
+        Cbc_setParameter(model.inner, name, value)
     end
     return
 end
 
-function MOI.get(optimizer::Optimizer, param::MOI.RawParameter)
+function MOI.get(model::Optimizer, param::MOI.RawParameter)
     # TODO: This gives a poor error message if the name of the parameter is invalid.
-    return optimizer.params[string(param.name)]
+    return model.params[string(param.name)]
 end
 
 MOI.supports(::Optimizer, ::MOI.Silent) = true
 
-function MOI.set(optimizer::Optimizer, ::MOI.Silent, value::Bool)
-    if value == optimizer.silent
+function MOI.set(model::Optimizer, ::MOI.Silent, value::Bool)
+    if value == model.silent
         return
     end
-    log_level = value ? "0" : get(optimizer.params, "logLevel", "1")
-    Cbc_setParameter(optimizer.inner, "logLevel", log_level)
-    optimizer.silent = value
+    log_level = value ? "0" : get(model.params, "logLevel", "1")
+    Cbc_setParameter(model.inner, "logLevel", log_level)
+    model.silent = value
     return
 end
-MOI.get(optimizer::Optimizer, ::MOI.Silent) = optimizer.silent
+MOI.get(model::Optimizer, ::MOI.Silent) = model.silent
 
 MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = true
-function MOI.set(optimizer::Optimizer, ::MOI.TimeLimitSec, value)
+function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     if value === nothing
-        delete!(optimizer.params, "seconds")
-        Cbc_setParameter(optimizer.inner, "seconds", "??")
+        delete!(model.params, "seconds")
+        Cbc_setParameter(model.inner, "seconds", "??")
     else
-        MOI.set(optimizer, MOI.RawParameter("seconds"), value)
+        MOI.set(model, MOI.RawParameter("seconds"), value)
     end
     return
 end
 
-function MOI.get(optimizer::Optimizer, ::MOI.TimeLimitSec)
-    value = get(optimizer.params, "seconds", nothing)
+function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
+    value = get(model.params, "seconds", nothing)
     return value === nothing ? value : parse(Float64, value)
 end
 
@@ -99,6 +97,7 @@ function MOI.empty!(model::Optimizer)
     Cbc_deleteModel(model.inner)
     model.inner = Cbc_newModel()
     model.objective_constant = 0.0
+    model.solve_time = 0.0
     for (name, value) in model.params
         Cbc_setParameter(model.inner, name, value)
     end
@@ -698,8 +697,14 @@ function MOI.optimize!(model::Optimizer)
         end
         Cbc_setMIPStartI(model.inner, length(columns), columns, values)
     end
+    t = time()
     Cbc_solve(model.inner)
+    model.solve_time = time() - t
     return
+end
+
+function MOI.get(model::Optimizer, ::MOI.SolveTime)
+    return model.solve_time
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfVariables)
@@ -766,27 +771,6 @@ function MOI.get(
     return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))
 end
 
-# function MOI.get(model::Optimizer, ::MOI.ResultCount)
-#     if MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
-#         return 1
-#     end
-#     return 0
-# end
-
-function MOI.get(model::Optimizer, ::MOI.ResultCount)
-    if Cbc_isProvenInfeasible(model.inner) != 0
-        return 0
-    elseif Cbc_isContinuousUnbounded(model.inner) != 0
-        return 0
-    elseif Cbc_isAbandoned(model.inner) != 0
-        return 0
-    elseif Cbc_getObjValue(model.inner) >= 1e300
-        return 0
-    else
-        return 1
-    end
-end
-
 function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
     sense = Cbc_getObjSense(model.inner)
     if sense == 1.0
@@ -808,39 +792,68 @@ MOI.is_set_by_optimize(::SecondaryStatus) = true
 MOI.get(model::Optimizer, ::Status) = Cbc_status(model.inner)
 MOI.get(model::Optimizer, ::SecondaryStatus) = Cbc_secondaryStatus(model.inner)
 
+const _STATUS = Dict{Cint, String}(
+    Cint(-1) => "before branchAndBound",
+    Cint(0) => "finished - check isProvenOptimal or isProvenInfeasible to see if solution found (or check value of best solution)",
+    Cint(1) => "stopped - on maxnodes, maxsols, maxtime",
+    Cint(2) => "execution abandoned due to numerical dificulties",
+    Cint(5) => "user programmed interruption",
+)
+
+const _SECONDARY_STATUS = Dict{Cint, String}(
+    Cint(-1) => "unset (status_ will also be -1)",
+    Cint(0) => "search completed with solution",
+    Cint(1) => "linear relaxation not feasible (or worse than cutoff)",
+    Cint(2) => "stopped on gap",
+    Cint(3) => "stopped on nodes",
+    Cint(4) => "stopped on time",
+    Cint(5) => "stopped on user event",
+    Cint(6) => "stopped on solutions",
+    Cint(7) => "linear relaxation unbounded",
+    Cint(8) => "stopped on iteration limit",
+)
+
 function MOI.get(model::Optimizer, ::MOI.RawStatusString)
-    # FIXME We should do something more helpful here
-    return string(
-        "status = ", MOI.get(model, Status()),
-        ", secondaryStatus = ", MOI.get(model, SecondaryStatus())
-    )
+    return """
+    Cbc_status          = $(_STATUS[Cbc_status(model.inner)])
+    Cbc_secondaryStatus = $(_SECONDARY_STATUS[Cbc_secondaryStatus(model.inner)])
+    """
+end
+
+function MOI.get(model::Optimizer, ::MOI.ResultCount)
+    return Cbc_bestSolution(model.inner) != C_NULL ? 1 : 0
 end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
-    if Cbc_status(model.inner) == -1
+    status = Cbc_status(model.inner)
+    if status == -1
         return MOI.OPTIMIZE_NOT_CALLED
-    elseif Cbc_isProvenOptimal(model.inner) != 0
-        return MOI.OPTIMAL
-    elseif Cbc_isProvenInfeasible(model.inner) != 0
-        return MOI.INFEASIBLE
-    elseif Cbc_isContinuousUnbounded(model.inner) != 0
-        return MOI.INFEASIBLE_OR_UNBOUNDED
-    elseif Cbc_isNodeLimitReached(model.inner) != 0
-        return MOI.NODE_LIMIT
-    elseif Cbc_isSecondsLimitReached(model.inner) != 0
-        return MOI.TIME_LIMIT
-    elseif Cbc_isSolutionLimitReached(model.inner) != 0
-        return MOI.SOLUTION_LIMIT
-    elseif Cbc_isAbandoned(model.inner) != 0
+    elseif status == 0
+        if Cbc_isProvenOptimal(model.inner) != 0
+            return MOI.OPTIMAL
+        elseif Cbc_isProvenInfeasible(model.inner) != 0
+            return MOI.INFEASIBLE
+        elseif Cbc_isContinuousUnbounded(model.inner) != 0
+            return MOI.INFEASIBLE_OR_UNBOUNDED
+        else
+            return MOI.OTHER_ERROR
+        end
+    elseif status == 1
+        if Cbc_isNodeLimitReached(model.inner) != 0
+            return MOI.NODE_LIMIT
+        elseif Cbc_isSecondsLimitReached(model.inner) != 0
+            return MOI.TIME_LIMIT
+        elseif Cbc_isSolutionLimitReached(model.inner) != 0
+            return MOI.SOLUTION_LIMIT
+        else
+            return MOI.OTHER_LIMIT
+        end
+    elseif status == 2
+        return MOI.NUMERICAL_ERROR
+    else
+        @assert status == 5
         return MOI.INTERRUPTED
-    elseif MOI.get(model, MOI.ResultCount()) == 1
-        return MOI.OPTIMAL
     end
-    # TODO(odow): what to do about these?
-    # Cbc_isInitialSolveProvenOptimal(model.inner) != 0
-    # Cbc_isInitialSolveProvenPrimalInfeasible(model.inner) != 0
-    # Cbc_isInitialSolveAbandoned(model.inner) != 0
-    return MOI.OTHER_ERROR
 end
 
 # TODO(odow): handle solutions that may exist when limit reached.

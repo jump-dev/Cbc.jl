@@ -34,7 +34,6 @@ end
     MOI.Test.unittest(BRIDGED, CONFIG, [
         # TODO(odow): implement attributes:
         "number_threads",
-        "solve_time",
 
         # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
         "solve_unbounded_model",
@@ -61,31 +60,22 @@ end
         MOI.Test.validtest(CACHED)
     end
     @testset "emptytest" begin
-        # Requires VectorOfVariables
-        # MOI.Test.emptytest(CACHED)
+        MOI.Test.emptytest(BRIDGED)
     end
     @testset "orderedindicestest" begin
         MOI.Test.orderedindicestest(CACHED)
     end
-    @testset "copytest" begin
-        # Requires VectorOfVariables
-        # MOI.Test.copytest(CACHED, MOI.Utilities.CachingOptimizer(
-        #     ModelForCachingOptimizer{Float64}(),
-        #     Cbc.Optimizer()
-        # ))
-    end
 end
 
 @testset "Continuous Linear" begin
-    MOI.Test.contlineartest(BRIDGED, CONFIG, [
-        "linear14",
-    ])
+    MOI.Test.contlineartest(BRIDGED, CONFIG)
 end
 
 @testset "Integer Linear" begin
     MOI.Test.intlineartest(BRIDGED, CONFIG, [
+        # Cbc does not support indicator constraints.
         "indicator1", "indicator2", "indicator3", "indicator4",
-        # TODO reenable when https://github.com/JuliaOpt/MathOptInterface.jl/issues/897 is resolved
+        # TODO(odow): needs MOI at least 0.9.14.
         "semiconttest", "semiinttest"
     ])
 end
