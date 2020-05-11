@@ -1,10 +1,9 @@
-using Test, MathOptInterface
+using Test
+using MathOptInterface
+import Cbc
 
 const MOI = MathOptInterface
-const MOIT = MOI.Test
-const MOIU = MOI.Utilities
 
-import Cbc
 const OPTIMIZER = Cbc.Optimizer()
 MOI.set(OPTIMIZER, MOI.Silent(), true)
 
@@ -13,88 +12,103 @@ MOI.set(OPTIMIZER, MOI.Silent(), true)
 end
 
 @testset "supports_default_copy_to" begin
-    @test !MOIU.supports_allocate_load(OPTIMIZER, false)
-    @test !MOIU.supports_allocate_load(OPTIMIZER, true)
-    @test !MOIU.supports_default_copy_to(OPTIMIZER, false)
-    @test !MOIU.supports_default_copy_to(OPTIMIZER, true)
+    @test !MOI.Utilities.supports_allocate_load(OPTIMIZER, false)
+    @test !MOI.Utilities.supports_allocate_load(OPTIMIZER, true)
+    @test !MOI.Utilities.supports_default_copy_to(OPTIMIZER, false)
+    @test !MOI.Utilities.supports_default_copy_to(OPTIMIZER, true)
 end
 
-const CACHE = MOIU.UniversalFallback(MOIU.Model{Float64}())
-const CACHED = MOIU.CachingOptimizer(CACHE, OPTIMIZER)
+const CACHED = MOI.Utilities.CachingOptimizer(
+    MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+    OPTIMIZER
+)
 const BRIDGED = MOI.Bridges.full_bridge_optimizer(CACHED, Float64)
 
-const CONFIG = MOIT.TestConfig(duals = false, infeas_certificates = false)
+const CONFIG = MOI.Test.TestConfig(duals = false, infeas_certificates = false)
 
 @testset "basic_constraint_tests" begin
-    MOIT.basic_constraint_tests(CACHED, CONFIG)
+    MOI.Test.basic_constraint_tests(CACHED, CONFIG)
 end
 
 @testset "Unit" begin
-    MOIT.unittest(BRIDGED, CONFIG, [
-        "number_threads", # FIXME implement `MOI.NumberOfThreads`
-        "solve_time", # FIXME implement `MOI.SolveTime`
-        "solve_unbounded_model", # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
-        "delete_soc_variables", "solve_qcp_edge_cases", "solve_qp_edge_cases"  # No quadratics
+    MOI.Test.unittest(BRIDGED, CONFIG, [
+        # TODO(odow): implement attributes:
+        "number_threads",
+
+        # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
+        "solve_unbounded_model",
+
+        # No quadratics
+        "delete_soc_variables",
+        "solve_qcp_edge_cases",
+        "solve_qp_edge_cases",
     ])
 end
 
 @testset "ModelLike" begin
     @test MOI.get(CACHED, MOI.SolverName()) == "COIN Branch-and-Cut (Cbc)"
     @testset "default_objective_test" begin
-         MOIT.default_objective_test(CACHED)
+         MOI.Test.default_objective_test(CACHED)
      end
      @testset "default_status_test" begin
-         MOIT.default_status_test(CACHED)
+         MOI.Test.default_status_test(CACHED)
      end
     @testset "nametest" begin
-        MOIT.nametest(CACHED)
+        MOI.Test.nametest(CACHED)
     end
     @testset "validtest" begin
-        MOIT.validtest(CACHED)
+        MOI.Test.validtest(CACHED)
     end
     @testset "emptytest" begin
-        # Requires VectorOfVariables
-        # MOIT.emptytest(CACHED)
+        MOI.Test.emptytest(BRIDGED)
     end
     @testset "orderedindicestest" begin
-        MOIT.orderedindicestest(CACHED)
-    end
-    @testset "copytest" begin
-        # Requires VectorOfVariables
-        # MOIT.copytest(CACHED, MOIU.CachingOptimizer(
-        #     ModelForCachingOptimizer{Float64}(),
-        #     Cbc.Optimizer()
-        # ))
+        MOI.Test.orderedindicestest(CACHED)
     end
 end
 
 @testset "Continuous Linear" begin
-    MOIT.contlineartest(BRIDGED, CONFIG)
+    MOI.Test.contlineartest(BRIDGED, CONFIG)
 end
 
 @testset "Integer Linear" begin
-    MOIT.intlineartest(BRIDGED, CONFIG, [
+    MOI.Test.intlineartest(BRIDGED, CONFIG, [
+        # Cbc does not support indicator constraints.
         "indicator1", "indicator2", "indicator3", "indicator4",
-        # TODO reenable when https://github.com/JuliaOpt/MathOptInterface.jl/issues/897 is resolved
+        # TODO(odow): needs MOI at least 0.9.14.
         "semiconttest", "semiinttest"
     ])
 end
 
 @testset "Test params" begin
-    knapsack_model = MOIU.Model{Float64}()
-    MOIU.loadfromstring!(knapsack_model, """
-        variables: x, y
-        maxobjective: x + y
-        c1: x in ZeroOne()
-        c2: y in ZeroOne()
-        c3: x + y <= 1.0
-    """)
-    model = Cbc.Optimizer(maxNodes = 0, presolve = "off", cuts = "off",
-                          heur = "off", logLevel = 0)
+    # Note: we generate a non-trivial problem to ensure that Cbc struggles to
+    # find a solution at the root node.
+    knapsack_model = MOI.Utilities.Model{Float64}()
+    N = 100
+    x = MOI.add_variables(knapsack_model, N)
+    MOI.add_constraint.(knapsack_model, MOI.SingleVariable.(x), MOI.ZeroOne())
+    MOI.add_constraint(
+        knapsack_model,
+        MOI.ScalarAffineFunction(
+            MOI.ScalarAffineTerm.([1 + sin(i) for i = 1:N], x),
+            0.0
+        ),
+        MOI.LessThan(10.0),
+    )
+    MOI.set(
+        knapsack_model,
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ScalarAffineFunction(
+            MOI.ScalarAffineTerm.([cos(i) for i = 1:N], x),
+            0.0
+        )
+    )
+    model = Cbc.Optimizer(
+        maxNodes = 0, presolve = "off", cuts = "off", heur = "off", logLevel = 0
+    )
     MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
-    # We also check that options are not destroyed on `empty!`.
     MOI.empty!(model)
     MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)

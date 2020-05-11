@@ -1,8 +1,4 @@
-using Cbc, Test
-
-@testset "MPB" begin
-    include("MPB_wrapper.jl")
-end
+using Test
 
 @testset "MOI" begin
     include("MOI_wrapper.jl")
