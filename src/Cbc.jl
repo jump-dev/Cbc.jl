@@ -29,7 +29,7 @@ if !(v"2.10.0" <= _CBC_VERSION <= v"2.10.5")
     )
 end
 
-include("MOI_wrapper.jl")
+include("MOI_wrapper/MOI_wrapper.jl")
 
 # TODO(odow): remove at Cbc.jl v1.0.0.
 function CbcSolver(args...; kwargs...)
