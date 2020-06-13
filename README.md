@@ -7,11 +7,11 @@ solver. It provides a complete interface to the low-level C API, as well as an
 implementation of the solver-independent `MathOptInterface`
 API's
 
-*Note: This wrapper is maintained by the JuliaOpt community and is not a COIN-OR
+*Note: This wrapper is maintained by the JuMP community and is not a COIN-OR
 project.*
 
 
-[![Build Status](https://travis-ci.org/JuliaOpt/Cbc.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/Cbc.jl)
+[![Build Status](https://travis-ci.org/jump-dev/Cbc.jl.svg?branch=master)](https://travis-ci.org/jump-dev/Cbc.jl)
 
 ## Installation
 
@@ -34,7 +34,7 @@ If you do not want BinaryProvider to download the default binaries on install se
 
 To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`.
 
-### Using with **[JuMP](https://github.com/JuliaOpt/JuMP.jl)**
+### Using with **[JuMP](https://github.com/jump-dev/JuMP.jl)**
 
 Use `Cbc.Optimizer` to use Cbc with JuMP:
 ```julia
