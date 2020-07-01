@@ -25,7 +25,7 @@ if !(v"2.10.0" <= _CBC_VERSION <= v"2.10.5")
         "You have installed version $_CBC_VERSION of Cbc, which is not " *
         "supported by Cbc.jl. If the version change was breaking, changes " *
         "will need to be made to the Julia code. Please open an issue at " *
-        "https://github.com/JuliaOpt/Cbc.jl."
+        "https://github.com/jump-dev/Cbc.jl."
     )
 end
 
@@ -37,7 +37,7 @@ function CbcSolver(args...; kwargs...)
         "`CbcSolver` is no longer supported. If you are using JuMP, upgrade " *
         "to the latest version and use `Cbc.Optimizer` instead. If you are " *
         "using MathProgBase (e.g., via `lingprog`), you will need to upgrade " *
-        "to MathOptInterface (https://github.com/JuliaOpt/MathOptInterface.jl)."
+        "to MathOptInterface (https://github.com/jump-dev/MathOptInterface.jl)."
     )
 end
 export CbcSolver
