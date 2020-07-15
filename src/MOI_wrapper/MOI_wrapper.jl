@@ -856,11 +856,11 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     end
 end
 
-# TODO(odow): handle solutions that may exist when limit reached.
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
     if attr.N != 1
         return MOI.NO_SOLUTION
-    elseif MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    end
+    if MOI.get(model, MOI.ResultCount()) > 0
         return MOI.FEASIBLE_POINT
     else
         return MOI.NO_SOLUTION
