@@ -724,6 +724,14 @@ function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     return Cbc_getObjValue(model.inner) + model.objective_constant
 end
 
+function MOI.get(model::Optimizer, ::MOI.RelativeGap)
+    # Get objective value of first available solution.
+    obj_val = MOI.get(model, MOI.ObjectiveValue(1))
+    # Get best objective bound.
+    obj_bnd = MOI.get(model, MOI.ObjectiveBound())
+    return abs((obj_bnd - obj_val) / obj_val)
+end
+
 function MOI.get(
     model::Optimizer, attr::MOI.VariablePrimal, x::MOI.VariableIndex
 )
