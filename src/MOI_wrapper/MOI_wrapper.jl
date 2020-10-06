@@ -724,12 +724,13 @@ function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     return Cbc_getObjValue(model.inner) + model.objective_constant
 end
 
+# Cbc does not provide a native way of accessing the relative gap,
+# use the Gurobi convention instead.
 function MOI.get(model::Optimizer, ::MOI.RelativeGap)
-    # Get objective value of first available solution.
-    obj_val = MOI.get(model, MOI.ObjectiveValue(1))
-    # Get best objective bound.
-    obj_bnd = MOI.get(model, MOI.ObjectiveBound())
-    return abs((obj_bnd - obj_val) / obj_val)
+    incumbent = MOI.get(model, MOI.ObjectiveValue())
+    bound = MOI.get(model, MOI.ObjectiveBound())
+    gap = abs(bound - incumbent) / abs(incumbent)
+    return isnan(gap) ? Inf : gap
 end
 
 function MOI.get(
