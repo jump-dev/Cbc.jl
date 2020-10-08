@@ -1,9 +1,24 @@
 language: julia
-os:
-  - linux
-  - osx
-julia:
-  - 1.0
-  - 1.4
+branches:
+  only:
+    - master
+    - /^release-.*$/
+    # Matches tags (needed to build documentation)
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 notifications:
   email: false
+codecov: true
+jobs:
+  include:
+    - os: linux
+      arch: x64
+      julia: 1
+    - os: linux
+      arch: x64
+      julia: 1.0
+    - os: linux
+      arch: x86
+      julia: 1.0
+    - os: osx
+      arch: x64
+      julia: 1
