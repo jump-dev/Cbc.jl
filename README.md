@@ -39,7 +39,8 @@ import Pkg
 Pkg.add("Cbc")
 Pkg.build("Cbc")
 ```
-Replace `"/usr/local/Cellar/clp/2.10/lib"` with a different path as appropriate.
+Replace `"/usr/local/Cellar/cbc/2.10.5/lib"` with a different path as
+appropriate.
 
 **You must have `JULIA_CBC_LIBRARY_PATH` set _every_ time you run `using Cbc`,
 not just when you install it.**

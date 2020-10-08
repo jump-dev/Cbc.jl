@@ -6,7 +6,10 @@ if haskey(ENV,"JULIA_CBC_LIBRARY_PATH") || VERSION < v"1.3"
         using Libdl
         include(deps_file)
     else
-        error("Cbc not properly installed. Please run import `Pkg; Pkg.build(\"Cbc\")`.")
+        error(
+            "Cbc not properly installed. Please run `import Pkg; " *
+            "Pkg.build(\"Cbc\")` for more information."
+        )
     end
 else
     import Cbc_jll: libcbcsolver
