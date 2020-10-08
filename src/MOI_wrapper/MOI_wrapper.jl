@@ -830,7 +830,7 @@ function MOI.get(model::Optimizer, ::MOI.RawStatusString)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
-    return Cbc_bestSolution(model.inner) != C_NULL ? 1 : 0
+    return Cbc_numberSavedSolutions(model.inner) > 0 ? 1 : 0
 end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
@@ -865,11 +865,10 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     end
 end
 
-# TODO(odow): handle solutions that may exist when limit reached.
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
     if attr.N != 1
         return MOI.NO_SOLUTION
-    elseif MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    elseif MOI.get(model, MOI.ResultCount()) == 1
         return MOI.FEASIBLE_POINT
     else
         return MOI.NO_SOLUTION
