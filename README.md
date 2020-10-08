@@ -31,8 +31,8 @@ below.
 
 To install custom built Cbc binaries, use the environmental variable
 `JULIA_CBC_LIBRARY_PATH` to point to the path at which you installed Cbc (the
-folder containing `libCbc`). For example, on Mac, after installing Cbc with
-`brew install cbc`, use:
+folder containing `libCbcSolver`). For example, on Mac, after installing Cbc
+with `brew install cbc`, use:
 ```julia
 ENV["JULIA_CBC_LIBRARY_PATH"] = "/usr/local/Cellar/cbc/2.10.5/lib"
 import Pkg

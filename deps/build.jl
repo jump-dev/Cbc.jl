@@ -52,7 +52,7 @@ else
 
         $(ENV["JULIA_CBC_LIBRARY_PATH"])
 
-        Set it to point to the directory containing `libCbc`, or to install the
+        Set it to point to the directory containing `libCbcSolver`, or to install the
         default binaries, run:
 
         delete!(ENV, "JULIA_CBC_LIBRARY_PATH")
