@@ -3,6 +3,8 @@ branches:
   only:
     - master
     - /^release-.*$/
+    # Matches tags (needed to build documentation)
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 notifications:
   email: false
 codecov: true
