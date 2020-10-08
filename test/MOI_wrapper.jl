@@ -104,13 +104,26 @@ end
         )
     )
     model = Cbc.Optimizer(
-        maxNodes = 0, presolve = "off", cuts = "off", heur = "off", logLevel = 0
+        maxSol = 1, presolve = "off", cuts = "off", heur = "off", logLevel = 0
     )
     MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
-    @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.SOLUTION_LIMIT
+    @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
     MOI.empty!(model)
     MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
-    @test MOI.get(model, MOI.TerminationStatus()) == MOI.NODE_LIMIT
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.SOLUTION_LIMIT
+    @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+end
+
+@testset "Test PrimalStatus" begin
+    model = MOI.Utilities.Model{Float64}()
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, x, MOI.GreaterThan(1.0))
+    MOI.add_constraint(model, x, MOI.LessThan(0.0))
+    cbc = Cbc.Optimizer()
+    MOI.copy_to(cbc, model)
+    MOI.optimize!(cbc)
+    MOI.get(cbc, MOI.PrimalStatus()) == MOI.NO_SOLUTION
 end
