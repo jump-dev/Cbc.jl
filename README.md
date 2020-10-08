@@ -17,26 +17,43 @@ project.*
 
 The package can be installed with `Pkg.add`.
 
-```
-julia> import Pkg; Pkg.add("Cbc")
+```julia
+import Pkg
+Pkg.add("Cbc")
 ```
 
-Cbc.jl will use [BinaryProvider.jl](https://github.com/JuliaPackaging/BinaryProvider.jl) to automatically install the Cbc binaries. This should work for both the official Julia binaries from `https://julialang.org/downloads/` and source-builds.
+In addition to installing the Cbc.jl package, this will also download and
+install the Cbc binaries. (You do not need to install Cbc separately.) If you
+require a custom build of Cbc, see the **Custom Installation** instructions
+below.
 
 ## Custom Installation
 
-To install custom built Clp binaries set the environmental variable `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`. For instance, if the libraries are installed in `/opt/lib` just call
+To install custom built Cbc binaries, use the environmental variable
+`JULIA_CBC_LIBRARY_PATH` to point to the path at which you installed Cbc (the
+folder containing `libCbc`). For example, on Mac, after installing Cbc with
+`brew install cbc`, use:
 ```julia
-ENV["JULIA_CBC_LIBRARY_PATH"] = "/opt/lib"
-import Pkg; Pkg.build("Cbc")
+ENV["JULIA_CBC_LIBRARY_PATH"] = "/usr/local/Cellar/cbc/2.10.5/lib"
+import Pkg
+Pkg.add("Cbc")
+Pkg.build("Cbc")
 ```
-If you do not want BinaryProvider to download the default binaries on install set  `JULIA_CBC_LIBRARY_PATH`  before calling `import Pkg; Pkg.add("Cbc")`.
+Replace `"/usr/local/Cellar/clp/2.10/lib"` with a different path as appropriate.
 
-To switch back to the default binaries clear `JULIA_CBC_LIBRARY_PATH` and call `import Pkg; Pkg.build("Cbc")`.
+**You must have `JULIA_CBC_LIBRARY_PATH` set _every_ time you run `using Cbc`,
+not just when you install it.**
 
-### Using with **[JuMP](https://github.com/jump-dev/JuMP.jl)**
+Switch back to the default binaries as follows:
+```julia
+delete!(ENV, "JULIA_CBC_LIBRARY_PATH")
+import Pkg
+Pkg.build("Cbc")
+```
 
-Use `Cbc.Optimizer` to use Cbc with JuMP:
+### Using with JuMP
+
+Use `Cbc.Optimizer` to use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl):
 ```julia
 using Cbc
 using JuMP
@@ -48,14 +65,35 @@ Options are solver-dependent, and unfortunately not well documented.
 
 The following options are likely to be the most useful:
 
-* ``seconds`` -- Solution timeout limit. (Must be a ``Float64``)
-* ``logLevel`` -- Set to 1 to enable solution output.
-* ``maxSolutions`` -- Terminate after this many feasible solutions have been found.
-* ``maxNodes`` -- Terminate after this many branch-and-bound nodes have been evaluated.
-* ``allowableGap`` -- Terminate after optimality gap is less than this value (on an absolute scale).
-* ``ratioGap`` -- Terminate after optimality gap is smaller than this relative fraction.
-* ``threads`` -- Set the number of threads to use for parallel branch & bound
+* `seconds` -- Solution timeout limit.
 
-The complete list of parameters can be found by running the ``cbc`` executable and typing ``?`` at the prompt.
+    For example, `set_optimizer_attribute(model, "seconds", 60.0)`.
+
+* `logLevel` -- Set to 1 to enable solution output.
+
+    For example, `set_optimizer_attribute(model, "logLevel", 1)`.
+
+* `maxSolutions` -- Terminate after this many feasible solutions have been found.
+
+    For example, `set_optimizer_attribute(model, "maxSolutions", 1)`.
+
+* `maxNodes` -- Terminate after this many branch-and-bound nodes have been evaluated.
+
+    For example, `set_optimizer_attribute(model, "maxNodes", 1)`.
+
+* `allowableGap` -- Terminate after optimality gap is less than this value (on an absolute scale).
+
+    For example, `set_optimizer_attribute(model, "allowableGap", 0.05)`.
+
+* `ratioGap` -- Terminate after optimality gap is smaller than this relative fraction.
+
+    For example, `set_optimizer_attribute(model, "allowableGap", 0.05)`.
+
+* `threads` -- Set the number of threads to use for parallel branch & bound.
+
+    For example, `set_optimizer_attribute(model, "threads", 2)`.
+
+The complete list of parameters can be found by running the `cbc` executable and
+typing `?` at the prompt.
 
 [Cbc]: https://projects.coin-or.org/Cbc
