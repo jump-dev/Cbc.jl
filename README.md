@@ -10,8 +10,8 @@ API's
 *Note: This wrapper is maintained by the JuMP community and is not a COIN-OR
 project.*
 
-
-[![Build Status](https://travis-ci.org/jump-dev/Cbc.jl.svg?branch=master)](https://travis-ci.org/jump-dev/Cbc.jl)
+[![Build Status](https://github.com/jump-dev/Cbc.jl/workflows/CI/badge.svg?branch=master)](https://github.com/jump-dev/Cbc.jl/actions?query=workflow%3ACI)
+[![codecov](https://codecov.io/gh/jump-dev/Cbc.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jump-dev/Cbc.jl)
 
 ## Installation
 
