@@ -527,11 +527,10 @@ end
 function create_constraint_indices_for_types(
     src::MOI.ModelLike,
     mapping::MOI.Utilities.IndexMap,
-    ::Type{MOI.VectorOfVariables},
+    F::Type{MOI.VectorOfVariables},
     S::Type{<:Union{MOI.SOS1{Float64}, MOI.SOS2{Float64}}},
     num_rows::Int,
 )
-    F = MOI.VectorOfVariables
     n = 0
     for index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
         n += 1
@@ -543,11 +542,10 @@ end
 function create_constraint_indices_for_types(
     src::MOI.ModelLike,
     mapping::MOI.Utilities.IndexMap,
-    ::Type{MOI.ScalarAffineFunction{Float64}},
+    F::Type{MOI.ScalarAffineFunction{Float64}},
     S::Type{<:MOI.AbstractScalarSet},
     num_rows::Int,
 )
-    F = MOI.ScalarAffineFunction{Float64}
     for index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
         num_rows += 1
         mapping.conmap[index] = MOI.ConstraintIndex{F, S}(num_rows)
