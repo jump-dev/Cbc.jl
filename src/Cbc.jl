@@ -21,10 +21,13 @@ include("gen/ctypes.jl")
 include("gen/libcbc_common.jl")
 include("gen/libcbc_api.jl")
 
-const _CBC_VERSION = VersionNumber(unsafe_string(Cbc_getVersion()))
+const _CBC_VERSION_STRING = unsafe_string(Cbc_getVersion())
 
-if !(v"2.10.0" <= _CBC_VERSION <= v"2.10.5")
-    error("""
+if _CBC_VERSION_STRING !== "devel"
+    const _CBC_VERSION = VersionNumber(_CBC_VERSION_STRING)
+
+    if !(v"2.10.0" <= _CBC_VERSION <= v"2.10.5")
+        error("""
     You have installed version $_CBC_VERSION of Cbc, which is not supported by
     Cbc.jl We require Cbc version 2.10. After installing Cbc 2.10, run:
 
@@ -36,6 +39,7 @@ if !(v"2.10.0" <= _CBC_VERSION <= v"2.10.5")
     to the Julia code. Please open an issue at
     https://github.com/jump-dev/Cbc.jl.
     """)
+    end
 end
 
 include("MOI_wrapper/MOI_wrapper.jl")
