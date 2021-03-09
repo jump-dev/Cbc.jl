@@ -10,6 +10,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     variable_start::Dict{MOI.VariableIndex, Float64}
     objective_constant::Float64
     solve_time::Float64
+    termination_status::Cint
 
     """
         Optimizer(; kwargs...)
@@ -24,6 +25,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             Dict{MOI.VariableIndex, Float64}(),
             0.0,
             0.0,
+            Cint(-1),
         )
         for (key, value) in kwargs
             MOI.set(model, MOI.RawParameter(key), value)
@@ -97,6 +99,7 @@ function MOI.empty!(model::Optimizer)
     Cbc_deleteModel(model.inner)
     model.inner = Cbc_newModel()
     model.objective_constant = 0.0
+    model.termination_status = Cint(-1)
     model.solve_time = 0.0
     for (name, value) in model.params
         Cbc_setParameter(model.inner, name, value)
@@ -713,7 +716,7 @@ function MOI.optimize!(model::Optimizer)
         Cbc_setMIPStartI(model.inner, length(columns), columns, values)
     end
     t = time()
-    Cbc_solve(model.inner)
+    model.termination_status = Cbc_solve(model.inner)
     model.solve_time = time() - t
     return
 end
@@ -839,7 +842,7 @@ const _SECONDARY_STATUS = Dict{Cint, String}(
 
 function MOI.get(model::Optimizer, ::MOI.RawStatusString)
     return """
-    Cbc_status          = $(_STATUS[Cbc_status(model.inner)])
+    Cbc_status          = $(_STATUS[model.termination_status])
     Cbc_secondaryStatus = $(_SECONDARY_STATUS[Cbc_secondaryStatus(model.inner)])
     """
 end
@@ -849,7 +852,7 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
 end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
-    status = Cbc_status(model.inner)
+    status = model.termination_status
     if status == -1
         return MOI.OPTIMIZE_NOT_CALLED
     elseif status == 0
