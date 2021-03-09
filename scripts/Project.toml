@@ -1,0 +1,4 @@
+[deps]
+Cbc_jll = "38041ee0-ae04-5750-a4d2-bb4d0d83d27d"
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
+CoinUtils_jll = "be027038-0da8-5614-b30d-e42594cb92df"

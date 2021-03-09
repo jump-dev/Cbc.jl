@@ -110,11 +110,11 @@ function Cbc_getNumRows(model)
 end
 
 function Cbc_getRowName(model, iRow, name, maxLength)
-    ccall((:Cbc_getRowName, libcbcsolver), Cvoid, (Ptr{Cbc_Model}, Cint, Cstring, Csize_t), model, iRow, name, maxLength)
+    ccall((:Cbc_getRowName, libcbcsolver), Cvoid, (Ptr{Cbc_Model}, Cint, Cstring, Cint), model, iRow, name, maxLength)
 end
 
 function Cbc_getColName(model, iColumn, name, maxLength)
-    ccall((:Cbc_getColName, libcbcsolver), Cvoid, (Ptr{Cbc_Model}, Cint, Cstring, Csize_t), model, iColumn, name, maxLength)
+    ccall((:Cbc_getColName, libcbcsolver), Cvoid, (Ptr{Cbc_Model}, Cint, Cstring, Cint), model, iColumn, name, maxLength)
 end
 
 function Cbc_getRowNz(model, row)
@@ -209,8 +209,8 @@ function Cbc_getElements(model)
     ccall((:Cbc_getElements, libcbcsolver), Ptr{Cdouble}, (Ptr{Cbc_Model},), model)
 end
 
-function Cbc_maxNameLength(model)
-    ccall((:Cbc_maxNameLength, libcbcsolver), Csize_t, (Ptr{Cbc_Model},), model)
+function Cbc_maxNameLength()
+    ccall((:Cbc_maxNameLength, libcbcsolver), Cint, ())
 end
 
 function Cbc_printModel(model, argPrefix)

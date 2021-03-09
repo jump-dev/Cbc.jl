@@ -1,28 +1,31 @@
-# TODO(odow):
-#
-# This script can be used to build the C interface to Cbc. However, it requires
-# you to manually do the following steps first:
-#
-# 1) Copy Cbc_C_Interface.h from cbc into this /scripts directory
-# 2) Copy Coin_C_defines.h from coinutils into this /scripts directory
-#
-# It should be possible to build the wrapper using the jll's, but I couldn't
-# figure out how to do that, and I didn't have enough time to spend on it.
-
 import Clang
+import Cbc_jll
+import CoinUtils_jll
 
-LIBCLP_HEADERS = [
-    joinpath(@__DIR__, "Coin_C_defines.h"),
-    joinpath(@__DIR__, "Cbc_C_Interface.h"),
+FILES = [
+    (CoinUtils_jll.artifact_dir, "Coin_C_defines.h"),
+    (Cbc_jll.artifact_dir, "Cbc_C_Interface.h"),
 ]
 
+for (dir, file) in FILES
+    cp(
+        joinpath(dir, "include", "coin", file),
+        joinpath(@__DIR__, file);
+        force = true,
+    )
+end
+
+GEN_DIR = joinpath(@__DIR__, "..", "src", "gen")
+
 wc = Clang.init(
-    headers = LIBCLP_HEADERS,
-    output_file = joinpath(@__DIR__, "..", "src", "libcbc_api.jl"),
-    common_file = joinpath(@__DIR__, "..", "src", "libcbc_common.jl"),
+    headers = map(i -> joinpath(@__DIR__, i[2]), FILES),
+    output_file = joinpath(GEN_DIR, "libcbc_api.jl"),
+    common_file = joinpath(GEN_DIR, "libcbc_common.jl"),
     header_wrapped = (root, current) -> root == current,
     header_library = x -> "libcbcsolver",
     clang_diagnostics = true,
 )
 
 run(wc)
+
+rm(joinpath(GEN_DIR, "LibTemplate.jl"))
