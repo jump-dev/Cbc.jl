@@ -44,6 +44,13 @@ end
 
 include("MOI_wrapper/MOI_wrapper.jl")
 
+# Cbc exports all `Cbc_xxx` symbols. If you don't want all of these symbols in
+# your environment, then use `import Cbc` instead of `using Cbc`.
+
+for sym in filter(s -> startswith("$s", "Cbc_"), names(@__MODULE__, all = true))
+    @eval export $sym
+end
+
 # TODO(odow): remove at Cbc.jl v1.0.0.
 function CbcSolver(args...; kwargs...)
     error(
