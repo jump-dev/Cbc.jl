@@ -8,6 +8,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     silent::Bool
     params::Dict{String, String}
     variable_start::Dict{MOI.VariableIndex, Float64}
+    has_integer::Bool
     objective_constant::Float64
     solve_time::Float64
     termination_status::Cint
@@ -23,6 +24,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             false,
             Dict{String, String}(),
             Dict{MOI.VariableIndex, Float64}(),
+            false,
             0.0,
             0.0,
             Cint(-1),
@@ -103,6 +105,7 @@ function MOI.empty!(model::Optimizer)
     model.inner = Cbc_newModel()
     model.objective_constant = 0.0
     model.termination_status = Cint(-1)
+    model.has_integer = false
     model.solve_time = 0.0
     for (name, value) in model.params
         Cbc_setParameter(model, name, value)
@@ -660,10 +663,14 @@ function MOI.copy_to(
     end
 
     cbc_dest.objective_constant = tmp_model.objective_constant
-
-    Cbc_setInteger.(cbc_dest, tmp_model.integer)
-    Cbc_setInteger.(cbc_dest, tmp_model.binary)
-
+    if length(tmp_model.integer) > 0
+        cbc_dest.has_integer = true
+        Cbc_setInteger.(cbc_dest, tmp_model.integer)
+    end
+    if length(tmp_model.binary) > 0
+        cbc_dest.has_integer = true
+        Cbc_setInteger.(cbc_dest, tmp_model.binary)
+    end
     if length(tmp_model.sos1_starts) > 0
         push!(tmp_model.sos1_starts, Cint(length(tmp_model.sos1_weights)))
         Cbc_addSOS(
@@ -685,6 +692,10 @@ function MOI.copy_to(
             tmp_model.sos2_weights,
             Cint(2),
         )
+    end
+    nsos = length(tmp_model.sos1_starts) + length(tmp_model.sos2_starts)
+    if nsos > 0 && !cbc_dest.has_integer
+        @warn("There are known correctness issues using Cbc with SOS constraints and no binary variables")
     end
     return mapping
 end
@@ -733,6 +744,9 @@ function MOI.get(model::Optimizer, ::MOI.NumberOfVariables)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveBound)
+    if !model.has_integer
+        return MOI.get(model, MOI.ObjectiveValue())
+    end
     return Cbc_getBestPossibleObjValue(model) + model.objective_constant
 end
 
@@ -851,6 +865,11 @@ function MOI.get(model::Optimizer, ::MOI.RawStatusString)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
+    if !model.has_integer
+        # Cbc forwards the solve to the LP solver if there are no integers, so
+        # check the termination status for the result count.
+        return model.termination_status == 0 ? 1 : 0
+    end
     return Cbc_numberSavedSolutions(model) > 0 ? 1 : 0
 end
 
@@ -858,26 +877,23 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     status = model.termination_status
     if status == -1
         return MOI.OPTIMIZE_NOT_CALLED
+    elseif Cbc_isProvenOptimal(model) != 0
+        return MOI.OPTIMAL
+    elseif Cbc_isProvenInfeasible(model) != 0
+        # Why Cbc. For LPs, this could mean dual infeasible.
+        return model.has_integer ? MOI.INFEASIBLE : MOI.INFEASIBLE_OR_UNBOUNDED
+    elseif Cbc_isContinuousUnbounded(model) != 0
+        return MOI.INFEASIBLE_OR_UNBOUNDED
+    elseif Cbc_isNodeLimitReached(model) != 0
+        return MOI.NODE_LIMIT
+    elseif Cbc_isSecondsLimitReached(model) != 0
+        return MOI.TIME_LIMIT
+    elseif Cbc_isSolutionLimitReached(model) != 0
+        return MOI.SOLUTION_LIMIT
     elseif status == 0
-        if Cbc_isProvenOptimal(model) != 0
-            return MOI.OPTIMAL
-        elseif Cbc_isProvenInfeasible(model) != 0
-            return MOI.INFEASIBLE
-        elseif Cbc_isContinuousUnbounded(model) != 0
-            return MOI.INFEASIBLE_OR_UNBOUNDED
-        else
-            return MOI.OTHER_ERROR
-        end
+        return MOI.OTHER_ERROR
     elseif status == 1
-        if Cbc_isNodeLimitReached(model) != 0
-            return MOI.NODE_LIMIT
-        elseif Cbc_isSecondsLimitReached(model) != 0
-            return MOI.TIME_LIMIT
-        elseif Cbc_isSolutionLimitReached(model) != 0
-            return MOI.SOLUTION_LIMIT
-        else
-            return MOI.OTHER_LIMIT
-        end
+        return MOI.OTHER_LIMIT
     elseif status == 2
         return MOI.NUMERICAL_ERROR
     else

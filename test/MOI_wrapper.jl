@@ -84,7 +84,9 @@ function test_IntegerLinear()
         # Cbc does not support indicator constraints.
         "indicator1", "indicator2", "indicator3", "indicator4",
         # TODO(odow): needs MOI at least 0.9.14.
-        "semiconttest", "semiinttest"
+        "semiconttest", "semiinttest",
+        # SOS issues
+        "int2",
     ])
 end
 
