@@ -865,6 +865,12 @@ function MOI.get(model::Optimizer, ::MOI.RawStatusString)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
+    if _CBC_VERSION == v"2.10.3"
+        # TODO(odow): Cbc_jll@2.10.3 and the BinaryProvider version shipped in
+        # Julia <1.3 contain a patch that is different to upstream. This branch
+        # can be removed when we drop support for Julia 1.0 and the 2.10.3 JLL.
+        return Cbc_numberSavedSolutions(model) > 0 ? 1 : 0
+    end
     if !model.has_integer
         # Cbc forwards the solve to the LP solver if there are no integers, so
         # check the termination status for the result count.
