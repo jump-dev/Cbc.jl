@@ -1,6 +1,6 @@
 module Cbc
 
-if haskey(ENV,"JULIA_CBC_LIBRARY_PATH") || VERSION < v"1.3"
+if haskey(ENV, "JULIA_CBC_LIBRARY_PATH") || VERSION < v"1.3"
     deps_file = joinpath(dirname(@__DIR__), "deps", "deps.jl")
     if isfile(deps_file)
         using Libdl
@@ -8,7 +8,7 @@ if haskey(ENV,"JULIA_CBC_LIBRARY_PATH") || VERSION < v"1.3"
     else
         error(
             "Cbc not properly installed. Please run `import Pkg; " *
-            "Pkg.build(\"Cbc\")` for more information."
+            "Pkg.build(\"Cbc\")` for more information.",
         )
     end
 else
@@ -57,12 +57,12 @@ end
 
 # TODO(odow): remove at Cbc.jl v1.0.0.
 function CbcSolver(args...; kwargs...)
-    error(
-        "`CbcSolver` is no longer supported. If you are using JuMP, upgrade " *
-        "to the latest version and use `Cbc.Optimizer` instead. If you are " *
-        "using MathProgBase (e.g., via `lingprog`), you will need to upgrade " *
-        "to MathOptInterface (https://github.com/jump-dev/MathOptInterface.jl)."
-    )
+    error("""
+    `CbcSolver` is no longer supported. If you are using JuMP, upgrade to the
+    latest version and use `Cbc.Optimizer` instead. If you are using
+    MathProgBase (e.g., via `lingprog`), you will need to upgrade to
+    MathOptInterface (https://github.com/jump-dev/MathOptInterface.jl).
+    """)
 end
 export CbcSolver
 

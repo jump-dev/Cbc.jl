@@ -22,29 +22,33 @@ end
 
 const CACHED = MOI.Utilities.CachingOptimizer(
     MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
-    OPTIMIZER
+    OPTIMIZER,
 )
 const BRIDGED = MOI.Bridges.full_bridge_optimizer(CACHED, Float64)
 
 const CONFIG = MOI.Test.TestConfig(duals = false, infeas_certificates = false)
 
 function test_basic_constraint_tests()
-    MOI.Test.basic_constraint_tests(CACHED, CONFIG)
+    return MOI.Test.basic_constraint_tests(CACHED, CONFIG)
 end
 
 function test_Unit()
-    MOI.Test.unittest(BRIDGED, CONFIG, [
-        # TODO(odow): implement attributes:
-        "number_threads",
+    return MOI.Test.unittest(
+        BRIDGED,
+        CONFIG,
+        [
+            # TODO(odow): implement attributes:
+            "number_threads",
 
-        # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
-        "solve_unbounded_model",
+            # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
+            "solve_unbounded_model",
 
-        # No quadratics
-        "delete_soc_variables",
-        "solve_qcp_edge_cases",
-        "solve_qp_edge_cases",
-    ])
+            # No quadratics
+            "delete_soc_variables",
+            "solve_qcp_edge_cases",
+            "solve_qp_edge_cases",
+        ],
+    )
 end
 
 function test_solvername()
@@ -52,40 +56,47 @@ function test_solvername()
 end
 
 function test_default_objective_test()
-    MOI.Test.default_objective_test(CACHED)
+    return MOI.Test.default_objective_test(CACHED)
 end
 
 function test_default_status_test()
-    MOI.Test.default_status_test(CACHED)
+    return MOI.Test.default_status_test(CACHED)
 end
 
 function test_nametest()
-    MOI.Test.nametest(CACHED)
+    return MOI.Test.nametest(CACHED)
 end
 
 function test_validtest()
-    MOI.Test.validtest(CACHED)
+    return MOI.Test.validtest(CACHED)
 end
 
 function test_emptytest()
-    MOI.Test.emptytest(BRIDGED)
+    return MOI.Test.emptytest(BRIDGED)
 end
 
 function test_orderedindicestest()
-    MOI.Test.orderedindicestest(CACHED)
+    return MOI.Test.orderedindicestest(CACHED)
 end
 
 function test_ContinuousLinear()
-    MOI.Test.contlineartest(BRIDGED, CONFIG)
+    return MOI.Test.contlineartest(BRIDGED, CONFIG)
 end
 
 function test_IntegerLinear()
-    MOI.Test.intlineartest(BRIDGED, CONFIG, [
-        # Cbc does not support indicator constraints.
-        "indicator1", "indicator2", "indicator3", "indicator4",
-        # SOS issues
-        "int2",
-    ])
+    return MOI.Test.intlineartest(
+        BRIDGED,
+        CONFIG,
+        [
+            # Cbc does not support indicator constraints.
+            "indicator1",
+            "indicator2",
+            "indicator3",
+            "indicator4",
+            # SOS issues
+            "int2",
+        ],
+    )
 end
 
 function test_Testparams()
@@ -98,8 +109,8 @@ function test_Testparams()
     MOI.add_constraint(
         knapsack_model,
         MOI.ScalarAffineFunction(
-            MOI.ScalarAffineTerm.([1 + sin(i) for i = 1:N], x),
-            0.0
+            MOI.ScalarAffineTerm.([1 + sin(i) for i in 1:N], x),
+            0.0,
         ),
         MOI.LessThan(10.0),
     )
@@ -107,12 +118,16 @@ function test_Testparams()
         knapsack_model,
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
         MOI.ScalarAffineFunction(
-            MOI.ScalarAffineTerm.([cos(i) for i = 1:N], x),
-            0.0
-        )
+            MOI.ScalarAffineTerm.([cos(i) for i in 1:N], x),
+            0.0,
+        ),
     )
     model = Cbc.Optimizer(
-        maxSol = 1, presolve = "off", cuts = "off", heur = "off", logLevel = 0
+        maxSol = 1,
+        presolve = "off",
+        cuts = "off",
+        heur = "off",
+        logLevel = 0,
     )
     MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
@@ -133,7 +148,7 @@ function test_TestPrimalStatus()
     cbc = Cbc.Optimizer()
     MOI.copy_to(cbc, model)
     MOI.optimize!(cbc)
-    MOI.get(cbc, MOI.PrimalStatus()) == MOI.NO_SOLUTION
+    return MOI.get(cbc, MOI.PrimalStatus()) == MOI.NO_SOLUTION
 end
 
 function runtests()
