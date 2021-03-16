@@ -8,7 +8,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     silent::Bool
     params::Dict{String, String}
     variable_start::Dict{MOI.VariableIndex, Float64}
-    has_integer::Bool
     objective_constant::Float64
     solve_time::Float64
     termination_status::Cint
@@ -24,7 +23,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             false,
             Dict{String, String}(),
             Dict{MOI.VariableIndex, Float64}(),
-            false,
             0.0,
             0.0,
             Cint(-1),
@@ -105,7 +103,6 @@ function MOI.empty!(model::Optimizer)
     model.inner = Cbc_newModel()
     model.objective_constant = 0.0
     model.termination_status = Cint(-1)
-    model.has_integer = false
     model.solve_time = 0.0
     for (name, value) in model.params
         Cbc_setParameter(model, name, value)
@@ -664,11 +661,9 @@ function MOI.copy_to(
 
     cbc_dest.objective_constant = tmp_model.objective_constant
     if length(tmp_model.integer) > 0
-        cbc_dest.has_integer = true
         Cbc_setInteger.(cbc_dest, tmp_model.integer)
     end
     if length(tmp_model.binary) > 0
-        cbc_dest.has_integer = true
         Cbc_setInteger.(cbc_dest, tmp_model.binary)
     end
     if length(tmp_model.sos1_starts) > 0
@@ -694,8 +689,11 @@ function MOI.copy_to(
         )
     end
     nsos = length(tmp_model.sos1_starts) + length(tmp_model.sos2_starts)
-    if nsos > 0 && !cbc_dest.has_integer
-        @warn("There are known correctness issues using Cbc with SOS constraints and no binary variables")
+    if nsos > 0 && Cbc_getNumIntegers(cbc_dest) == 0
+        @warn(
+            "There are known correctness issues using Cbc with SOS " *
+            "constraints and no binary variables.",
+        )
     end
     return mapping
 end
@@ -744,7 +742,7 @@ function MOI.get(model::Optimizer, ::MOI.NumberOfVariables)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveBound)
-    if !model.has_integer
+    if Cbc_getNumIntegers(model) == 0
         return MOI.get(model, MOI.ObjectiveValue())
     end
     return Cbc_getBestPossibleObjValue(model) + model.objective_constant
@@ -871,7 +869,7 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
         # can be removed when we drop support for Julia 1.0 and the 2.10.3 JLL.
         return Cbc_numberSavedSolutions(model) > 0 ? 1 : 0
     end
-    if !model.has_integer
+    if Cbc_getNumIntegers(model) == 0
         # Cbc forwards the solve to the LP solver if there are no integers, so
         # check the termination status for the result count.
         return model.termination_status == 0 ? 1 : 0
@@ -886,8 +884,12 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     elseif Cbc_isProvenOptimal(model) != 0
         return MOI.OPTIMAL
     elseif Cbc_isProvenInfeasible(model) != 0
-        # Why Cbc. For LPs, this could mean dual infeasible.
-        return model.has_integer ? MOI.INFEASIBLE : MOI.INFEASIBLE_OR_UNBOUNDED
+        if Cbc_getNumIntegers(model) == 0
+            # Why Cbc. For LPs, this could mean dual infeasible.
+            return MOI.INFEASIBLE_OR_UNBOUNDED
+        else
+            return MOI.INFEASIBLE
+        end
     elseif Cbc_isContinuousUnbounded(model) != 0
         return MOI.INFEASIBLE_OR_UNBOUNDED
     elseif Cbc_isNodeLimitReached(model) != 0
