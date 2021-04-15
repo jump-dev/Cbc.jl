@@ -27,31 +27,6 @@ install the Cbc binaries. (You do not need to install Cbc separately.) If you
 require a custom build of Cbc, see the **Custom Installation** instructions
 below.
 
-## Custom Installation
-
-To install custom built Cbc binaries, use the environmental variable
-`JULIA_CBC_LIBRARY_PATH` to point to the path at which you installed Cbc (the
-folder containing `libCbcSolver`). For example, on Mac, after installing Cbc
-with `brew install cbc`, use:
-```julia
-ENV["JULIA_CBC_LIBRARY_PATH"] = "/usr/local/Cellar/cbc/2.10.5/lib"
-import Pkg
-Pkg.add("Cbc")
-Pkg.build("Cbc")
-```
-Replace `"/usr/local/Cellar/cbc/2.10.5/lib"` with a different path as
-appropriate.
-
-**You must have `JULIA_CBC_LIBRARY_PATH` set _every_ time you run `using Cbc`,
-not just when you install it.**
-
-Switch back to the default binaries as follows:
-```julia
-delete!(ENV, "JULIA_CBC_LIBRARY_PATH")
-import Pkg
-Pkg.build("Cbc")
-```
-
 ### Using with JuMP
 
 Use `Cbc.Optimizer` to use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl):
@@ -62,7 +37,9 @@ model = Model(Cbc.Optimizer)
 set_optimizer_attribute(model, "logLevel", 1)
 ```
 
-Options are solver-dependent, and unfortunately not well documented.
+### Options
+
+Options are, unfortunately, not well documented.
 
 The following options are likely to be the most useful:
 
@@ -97,4 +74,35 @@ The following options are likely to be the most useful:
 The complete list of parameters can be found by running the `cbc` executable and
 typing `?` at the prompt.
 
-[Cbc]: https://projects.coin-or.org/Cbc
+On Julia 1.3 and above, you can start the `cbc` executable from Julia as follows:
+```julia
+using Cbc_jll
+Cbc_jll.cbc() do exe
+    run(`$(exe)`)
+end
+```
+
+## Custom Installation
+
+To install custom built Cbc binaries, use the environmental variable
+`JULIA_CBC_LIBRARY_PATH` to point to the path at which you installed Cbc (the
+folder containing `libCbcSolver`). For example, on Mac, after installing Cbc
+with `brew install cbc`, use:
+```julia
+ENV["JULIA_CBC_LIBRARY_PATH"] = "/usr/local/Cellar/cbc/2.10.5/lib"
+import Pkg
+Pkg.add("Cbc")
+Pkg.build("Cbc")
+```
+Replace `"/usr/local/Cellar/cbc/2.10.5/lib"` with a different path as
+appropriate.
+
+**You must have `JULIA_CBC_LIBRARY_PATH` set _every_ time you run `using Cbc`,
+not just when you install it.**
+
+Switch back to the default binaries as follows:
+```julia
+delete!(ENV, "JULIA_CBC_LIBRARY_PATH")
+import Pkg
+Pkg.build("Cbc")
+```
