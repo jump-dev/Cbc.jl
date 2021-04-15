@@ -27,7 +27,7 @@ install the Cbc binaries. (You do not need to install Cbc separately.) If you
 require a custom build of Cbc, see the **Custom Installation** instructions
 below.
 
-### Using with JuMP
+## Using with JuMP
 
 Use `Cbc.Optimizer` to use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl):
 ```julia
@@ -37,7 +37,7 @@ model = Model(Cbc.Optimizer)
 set_optimizer_attribute(model, "logLevel", 1)
 ```
 
-### Options
+## Options
 
 Options are, unfortunately, not well documented.
 
