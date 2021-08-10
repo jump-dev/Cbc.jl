@@ -44,6 +44,7 @@ function test_runtests()
             exclude = Any[
                 MOI.ConstraintDual,
                 MOI.DualObjectiveValue,
+                # TODO(odow): remove when MOI updated
                 MOI.ConstraintDual(),
                 MOI.ConstraintBasisStatus,
                 MOI.VariableBasisStatus,
@@ -63,7 +64,7 @@ function test_runtests()
             "test_conic_NormInfinityCone_INFEASIBLE",
             "test_conic_NormOneCone_INFEASIBLE",
             "test_solve_TerminationStatus_DUAL_INFEASIBLE",
-        ]
+        ],
     )
     return
 end
