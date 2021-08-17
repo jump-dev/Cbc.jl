@@ -767,20 +767,22 @@ function MOI.optimize!(model::Optimizer)
     t = time()
     model.termination_status = Cbc_solve(model)
     model.solve_time = time() - t
+    model.solution_status = _get_solution_status(model)
     model.num_integers = Cbc_getNumIntegers(model)
     if MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
         model.primal_solution_cache = _unsafe_wrap_cbc_array(
-                                                        model,
-                                                        Cbc_getColSolution,
-                                                        Cbc_getNumCols(model))
+            model,
+            Cbc_getColSolution,
+            Cbc_getNumCols(model),
+        )
         model.primal_constraint_cache = _unsafe_wrap_cbc_array(
-                                                        model,
-                                                        Cbc_getRowActivity,
-                                                        Cbc_getNumRows(model))
+            model,
+            Cbc_getRowActivity,
+            Cbc_getNumRows(model),
+        )
     end
     return
 end
-
 
 function MOI.get(model::Optimizer, ::MOI.SolveTime)
     return model.solve_time
@@ -917,9 +919,6 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
 end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
-    if model.termination_status != -1 && model.solution_status == MOI.OPTIMIZE_NOT_CALLED
-        model.solution_status = _get_solution_status(model)
-    end
     return model.solution_status
 end
 function _get_solution_status(model::Optimizer)
