@@ -118,6 +118,8 @@ function MOI.empty!(model::Optimizer)
         Cbc_setParameter(model, "logLevel", "0")
     end
     empty!(model.variable_start)
+    model.primal_solution_cache = Float64[]
+    model.primal_constraint_cache = Float64[]
     return
 end
 
