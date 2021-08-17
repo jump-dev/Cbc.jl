@@ -17,6 +17,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Similar cache for constraints evaluated at primal solution. 
     primal_constraint_cache::Vector{Float64}
 
+    solution_status::MOI.TerminationStatusCode
+    num_integers::Int
+
     """
         Optimizer(; kwargs...)
 
@@ -33,6 +36,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             Cint(-1),
             Float64[],
             Float64[],
+            MOI.OPTIMIZE_NOT_CALLED,
+            0,
         )
         for (key, value) in kwargs
             MOI.set(model, MOI.RawParameter(key), value)
@@ -120,6 +125,8 @@ function MOI.empty!(model::Optimizer)
     empty!(model.variable_start)
     model.primal_solution_cache = Float64[]
     model.primal_constraint_cache = Float64[]
+    model.solution_status = MOI.OPTIMIZE_NOT_CALLED
+    model.num_integers = 0
     return
 end
 
@@ -760,6 +767,7 @@ function MOI.optimize!(model::Optimizer)
     t = time()
     model.termination_status = Cbc_solve(model)
     model.solve_time = time() - t
+    model.num_integers = Cbc_getNumIntegers(model)
     if MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
         model.primal_solution_cache = _unsafe_wrap_cbc_array(
                                                         model,
@@ -900,7 +908,7 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
         # can be removed when we drop support for Julia 1.0 and the 2.10.3 JLL.
         return Cbc_numberSavedSolutions(model) > 0 ? 1 : 0
     end
-    if Cbc_getNumIntegers(model) == 0
+    if model.num_integers == 0
         # Cbc forwards the solve to the LP solver if there are no integers, so
         # check the termination status for the result count.
         return model.termination_status == 0 ? 1 : 0
@@ -909,6 +917,12 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
 end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
+    if model.termination_status != -1 && model.solution_status == MOI.OPTIMIZE_NOT_CALLED
+        model.solution_status = _get_solution_status(model)
+    end
+    return model.solution_status
+end
+function _get_solution_status(model::Optimizer)
     status = model.termination_status
     if status == -1
         return MOI.OPTIMIZE_NOT_CALLED
