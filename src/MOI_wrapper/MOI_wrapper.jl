@@ -11,6 +11,11 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     objective_constant::Float64
     solve_time::Float64
     termination_status::Cint
+    # A cache for the primal solution vector to avoid having to query the full
+    # vector in order to lookup one element.
+    primal_solution_cache::Vector{Float64}
+    # Similar cache for constraints evaluated at primal solution. 
+    primal_constraint_cache::Vector{Float64}
 
     """
         Optimizer(; kwargs...)
@@ -26,6 +31,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             0.0,
             0.0,
             Cint(-1),
+            Float64[],
+            Float64[],
         )
         for (key, value) in kwargs
             MOI.set(model, MOI.RawParameter(key), value)
@@ -728,16 +735,14 @@ end
 function _unsafe_wrap_cbc_array(
     model::Optimizer,
     f::F,
-    n::Integer,
-    indices;
+    n::Integer;
     own::Bool = false,
 ) where {F<:Function}
     p = f(model)
     if p == C_NULL
-        return map(x -> NaN, indices)
+        return fill(NaN, n)
     end
-    x = unsafe_wrap(Array, p, (n,); own = own)
-    return x[indices]
+    return unsafe_wrap(Array, p, (n,); own = own)
 end
 
 function MOI.optimize!(model::Optimizer)
@@ -753,8 +758,19 @@ function MOI.optimize!(model::Optimizer)
     t = time()
     model.termination_status = Cbc_solve(model)
     model.solve_time = time() - t
+    if MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+        model.primal_solution_cache = _unsafe_wrap_cbc_array(
+                                                        model,
+                                                        Cbc_getColSolution,
+                                                        Cbc_getNumCols(model))
+        model.primal_constraint_cache = _unsafe_wrap_cbc_array(
+                                                        model,
+                                                        Cbc_getRowActivity,
+                                                        Cbc_getNumRows(model))
+    end
     return
 end
+
 
 function MOI.get(model::Optimizer, ::MOI.SolveTime)
     return model.solve_time
@@ -795,12 +811,7 @@ function MOI.get(
     x::MOI.VariableIndex,
 )
     MOI.check_result_index_bounds(model, attr)
-    return _unsafe_wrap_cbc_array(
-        model,
-        Cbc_getColSolution,
-        Cbc_getNumCols(model),
-        x.value,
-    )
+    return model.primal_solution_cache[x.value]
 end
 
 function MOI.get(
@@ -809,12 +820,7 @@ function MOI.get(
     x::Vector{MOI.VariableIndex},
 )
     MOI.check_result_index_bounds(model, attr)
-    return _unsafe_wrap_cbc_array(
-        model,
-        Cbc_getColSolution,
-        Cbc_getNumCols(model),
-        [xi.value for xi in x],
-    )
+    return Float64[model.primal_solution_cache[xi.value] for xi in x]
 end
 
 function MOI.get(
@@ -823,12 +829,7 @@ function MOI.get(
     index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},<:Any},
 )
     MOI.check_result_index_bounds(model, attr)
-    return _unsafe_wrap_cbc_array(
-        model,
-        Cbc_getRowActivity,
-        Cbc_getNumRows(model),
-        index.value,
-    )
+    return model.primal_constraint_cache[index.value]
 end
 
 function MOI.get(
