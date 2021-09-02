@@ -76,7 +76,8 @@ function MOI.set(
 end
 
 function MOI.get(model::Optimizer, param::MOI.RawOptimizerAttribute)
-    # TODO: This gives a poor error message if the name of the parameter is invalid.
+    # TODO: This gives a poor error message if the name of the parameter is
+    # invalid.
     return model.params[string(param.name)]
 end
 
@@ -195,20 +196,14 @@ mutable struct _CbcModelFormat
 end
 
 ###
-### SingleVariable-in-{EqualTo,LessThan,GreaterThan,Interval,ZeroOne,Integer}
+### VariableIndex-in-{EqualTo,LessThan,GreaterThan,Interval,ZeroOne,Integer}
 ###
 
-function _column_value(map::MOI.Utilities.IndexMap, index::MOI.VariableIndex)
-    return map[index].value
-end
-
-function _column_value(map::MOI.Utilities.IndexMap, func::MOI.SingleVariable)
-    return _column_value(map, func.variable)
-end
+_column_value(map::MOI.IndexMap, index::MOI.VariableIndex) = map[index].value
 
 function MOI.supports_constraint(
     ::Optimizer,
-    ::Type{MOI.SingleVariable},
+    ::Type{MOI.VariableIndex},
     ::Type{
         <:Union{
             MOI.EqualTo{Float64},
@@ -234,8 +229,8 @@ end
 function _load_constraint(
     ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
-    func::MOI.SingleVariable,
+    mapping::MOI.IndexMap,
+    func::MOI.VariableIndex,
     set::MOI.EqualTo,
 )
     column = _column_value(mapping, func)
@@ -247,8 +242,8 @@ end
 function _load_constraint(
     ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
-    func::MOI.SingleVariable,
+    mapping::MOI.IndexMap,
+    func::MOI.VariableIndex,
     set::MOI.LessThan,
 )
     column = _column_value(mapping, func)
@@ -259,8 +254,8 @@ end
 function _load_constraint(
     ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
-    func::MOI.SingleVariable,
+    mapping::MOI.IndexMap,
+    func::MOI.VariableIndex,
     set::MOI.GreaterThan,
 )
     column = _column_value(mapping, func)
@@ -271,8 +266,8 @@ end
 function _load_constraint(
     ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
-    func::MOI.SingleVariable,
+    mapping::MOI.IndexMap,
+    func::MOI.VariableIndex,
     set::MOI.Interval,
 )
     column = _column_value(mapping, func)
@@ -284,8 +279,8 @@ end
 function _load_constraint(
     ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
-    func::MOI.SingleVariable,
+    mapping::MOI.IndexMap,
+    func::MOI.VariableIndex,
     ::MOI.ZeroOne,
 )
     push!(model.binary, _column_value(mapping, func) - 1)
@@ -295,8 +290,8 @@ end
 function _load_constraint(
     ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
-    func::MOI.SingleVariable,
+    mapping::MOI.IndexMap,
+    func::MOI.VariableIndex,
     ::MOI.Integer,
 )
     push!(model.integer, _column_value(mapping, func) - 1)
@@ -306,7 +301,7 @@ end
 function _load_constraints(
     model::_CbcModelFormat,
     src::MOI.ModelLike,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     F::Type{<:MOI.AbstractFunction},
     S::Type{<:MOI.AbstractSet},
 )
@@ -343,7 +338,7 @@ end
 
 function _add_terms(
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S},
     func::MOI.ScalarAffineFunction{Float64},
 ) where {S}
@@ -358,7 +353,7 @@ end
 function _load_constraint(
     index::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     func::MOI.ScalarAffineFunction,
     set::MOI.EqualTo,
 )
@@ -372,7 +367,7 @@ end
 function _load_constraint(
     index::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     func::MOI.ScalarAffineFunction,
     set::MOI.GreaterThan,
 )
@@ -385,7 +380,7 @@ end
 function _load_constraint(
     index::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     func::MOI.ScalarAffineFunction,
     set::MOI.LessThan,
 )
@@ -398,7 +393,7 @@ end
 function _load_constraint(
     index::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     func::MOI.ScalarAffineFunction,
     set::MOI.Interval,
 )
@@ -410,31 +405,31 @@ function _load_constraint(
 end
 
 function _load_constraint(
-    index::MOI.ConstraintIndex,
+    ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     func::MOI.VectorOfVariables,
     set::MOI.SOS1{Float64},
 )
     push!(model.sos1_starts, Cint(length(model.sos1_weights)))
     append!(model.sos1_weights, set.weights)
     for v in func.variables
-        push!(model.sos1_indices, Cint(v.value - 1))
+        push!(model.sos1_indices, _column_value(mapping, v))
     end
     return
 end
 
 function _load_constraint(
-    index::MOI.ConstraintIndex,
+    ::MOI.ConstraintIndex,
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     func::MOI.VectorOfVariables,
     set::MOI.SOS2{Float64},
 )
     push!(model.sos2_starts, Cint(length(model.sos2_weights)))
     append!(model.sos2_weights, set.weights)
     for v in func.variables
-        push!(model.sos2_indices, Cint(v.value - 1))
+        push!(model.sos2_indices, _column_value(mapping, v))
     end
     return
 end
@@ -474,7 +469,7 @@ end
 
 function _load_objective(
     model::_CbcModelFormat,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     dest::Optimizer,
     src::MOI.ModelLike,
 )
@@ -541,23 +536,23 @@ end
 
 function _create_constraint_indices_for_types(
     src::MOI.ModelLike,
-    mapping::MOI.Utilities.IndexMap,
-    ::Type{MOI.SingleVariable},
+    mapping::MOI.IndexMap,
+    ::Type{MOI.VariableIndex},
     S::Type{<:MOI.AbstractSet},
     num_rows::Int,
 )
-    for index in
-        MOI.get(src, MOI.ListOfConstraintIndices{MOI.SingleVariable,S}())
+    indices = MOI.get(src, MOI.ListOfConstraintIndices{MOI.VariableIndex,S}())
+    for index in indices
         f = MOI.get(src, MOI.ConstraintFunction(), index)
-        i = mapping[f.variable].value
-        mapping[index] = MOI.ConstraintIndex{MOI.SingleVariable,S}(i)
+        i = mapping[f].value
+        mapping[index] = MOI.ConstraintIndex{MOI.VariableIndex,S}(i)
     end
     return num_rows
 end
 
 function _create_constraint_indices_for_types(
     src::MOI.ModelLike,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     F::Type{MOI.VectorOfVariables},
     S::Type{<:Union{MOI.SOS1{Float64},MOI.SOS2{Float64}}},
     num_rows::Int,
@@ -572,7 +567,7 @@ end
 
 function _create_constraint_indices_for_types(
     src::MOI.ModelLike,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
     F::Type{MOI.ScalarAffineFunction{Float64}},
     S::Type{<:MOI.AbstractScalarSet},
     num_rows::Int,
@@ -587,60 +582,50 @@ end
 function _create_constraint_indices(
     dest::Optimizer,
     src::MOI.ModelLike,
-    mapping::MOI.Utilities.IndexMap,
+    mapping::MOI.IndexMap,
 )
     n = 0
     for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
         if !(MOI.supports_constraint(dest, F, S))
             throw(
                 MOI.UnsupportedConstraint{F,S}(
-                    "Cbc.Optimizer does not support constraints of type $F -in- $S.",
+                    "Cbc does not support constraints of type $F-in-$S.",
                 ),
             )
         end
         # The type of `F` and `S` is not type-stable, so we use a function
-        # barrier (`_create_constraint_indices_for_types`) to improve performance.
+        # barrier (`_create_constraint_indices_for_types`) to improve
+        # performance.
         n = _create_constraint_indices_for_types(src, mapping, F, S, n)
     end
     return Cint(n)
 end
 
-function _create_variable_indices(
-    src::MOI.ModelLike,
-    mapping::MOI.Utilities.IndexMap,
-)
+function _create_variable_indices(src::MOI.ModelLike, mapping::MOI.IndexMap)
     for (i, x) in enumerate(MOI.get(src, MOI.ListOfVariableIndices()))
         mapping[x] = MOI.VariableIndex(i)
     end
     return Cint(length(mapping.var_map))
 end
 
-function MOI.copy_to(
-    cbc_dest::Optimizer,
-    src::MOI.ModelLike;
-    copy_names::Bool = false,
-)
+function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike)
     @assert MOI.is_empty(cbc_dest)
-    mapping = MOI.Utilities.IndexMap()
+    mapping = MOI.IndexMap()
     num_cols = _create_variable_indices(src, mapping)
     num_rows = _create_constraint_indices(cbc_dest, src, mapping)
     tmp_model = _CbcModelFormat(num_rows, num_cols)
-
     _load_objective(tmp_model, mapping, cbc_dest, src)
-
     for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
         # The type of `F` and `S` is not type-stable, so we use a function
         # barrier (`_load_constraints`) to improve performance.
         _load_constraints(tmp_model, src, mapping, F, S)
     end
-
     # Since Cbc doesn't have an explicit binary variable, we need to add [0, 1]
     # bounds and make it integer (which is done at the end of this function).
     for column in tmp_model.binary
         tmp_model.col_lb[column+1] = max(tmp_model.col_lb[column+1], 0.0)
         tmp_model.col_ub[column+1] = min(tmp_model.col_ub[column+1], 1.0)
     end
-
     A = SparseArrays.sparse(
         tmp_model.row_idx,
         tmp_model.col_idx,
@@ -648,7 +633,6 @@ function MOI.copy_to(
         tmp_model.num_rows,
         tmp_model.num_cols,
     )
-
     Cbc_loadProblem(
         cbc_dest,
         tmp_model.num_cols,
@@ -662,20 +646,15 @@ function MOI.copy_to(
         tmp_model.row_lb,
         tmp_model.row_ub,
     )
-
     MOI.Utilities.pass_attributes(
         cbc_dest,
         src,
-        copy_names,
         mapping,
         MOI.get(src, MOI.ListOfVariableIndices()),
     )
-
     for attr in MOI.get(src, MOI.ListOfModelAttributesSet())
         if attr isa MOI.ObjectiveFunction
             continue # Already copied
-        elseif !copy_names && attr isa MOI.Name
-            continue
         end
         value = MOI.get(src, attr)
         if value !== nothing
@@ -683,18 +662,10 @@ function MOI.copy_to(
             MOI.set(cbc_dest, attr, mapped_value)
         end
     end
-
     for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
         cis_src = MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-        MOI.Utilities.pass_attributes(
-            cbc_dest,
-            src,
-            copy_names,
-            mapping,
-            cis_src,
-        )
+        MOI.Utilities.pass_attributes(cbc_dest, src, mapping, cis_src)
     end
-
     cbc_dest.objective_constant = tmp_model.objective_constant
     if length(tmp_model.integer) > 0
         Cbc_setInteger.(cbc_dest, tmp_model.integer)
@@ -845,7 +816,7 @@ end
 function MOI.get(
     model::Optimizer,
     attr::MOI.ConstraintPrimal,
-    index::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
+    index::MOI.ConstraintIndex{MOI.VariableIndex,<:Any},
 )
     MOI.check_result_index_bounds(model, attr)
     return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))

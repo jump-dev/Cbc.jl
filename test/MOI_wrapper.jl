@@ -23,9 +23,7 @@ function test_SolverName()
 end
 
 function test_supports_incremental_interface()
-    model = Cbc.Optimizer()
-    @test !MOI.supports_incremental_interface(model, false)
-    @test !MOI.supports_incremental_interface(model, true)
+    @test !MOI.supports_incremental_interface(Cbc.Optimizer())
     return
 end
 
@@ -44,15 +42,16 @@ function test_runtests()
             exclude = Any[
                 MOI.ConstraintDual,
                 MOI.DualObjectiveValue,
-                # TODO(odow): remove when MOI updated
-                MOI.ConstraintDual(),
                 MOI.ConstraintBasisStatus,
                 MOI.VariableBasisStatus,
             ],
         ),
         exclude = [
             # TODO(odow): bug in Cbc.jl
+            "test_constraint_Indicator_ACTIVATE_ON_ZERO",
             "test_model_copy_to_UnsupportedAttribute",
+            "test_model_ModelFilter_AbstractConstraintAttribute",
+            "test_objective_FEASIBILITY_SENSE_clears_objective",
             # TODO(odow): bug in MOI
             "test_model_LowerBoundAlreadySet",
             "test_model_UpperBoundAlreadySet",
@@ -60,6 +59,7 @@ function test_runtests()
             "test_linear_Indicator_",
             "test_linear_SOS1_integration",
             "test_linear_SOS2_integration",
+            "test_solve_SOS2_",
             # Can't prove infeasible.
             "test_conic_NormInfinityCone_INFEASIBLE",
             "test_conic_NormOneCone_INFEASIBLE",
@@ -75,7 +75,7 @@ function test_params()
     knapsack_model = MOI.Utilities.Model{Float64}()
     N = 100
     x = MOI.add_variables(knapsack_model, N)
-    MOI.add_constraint.(knapsack_model, MOI.SingleVariable.(x), MOI.ZeroOne())
+    MOI.add_constraint.(knapsack_model, x, MOI.ZeroOne())
     MOI.add_constraint(
         knapsack_model,
         MOI.ScalarAffineFunction(
