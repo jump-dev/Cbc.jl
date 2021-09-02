@@ -51,7 +51,6 @@ function test_runtests()
             "test_constraint_Indicator_ACTIVATE_ON_ZERO",
             "test_model_copy_to_UnsupportedAttribute",
             "test_model_ModelFilter_AbstractConstraintAttribute",
-            "test_objective_FEASIBILITY_SENSE_clears_objective",
             # TODO(odow): bug in MOI
             "test_model_LowerBoundAlreadySet",
             "test_model_UpperBoundAlreadySet",

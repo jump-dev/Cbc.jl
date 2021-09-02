@@ -451,6 +451,9 @@ function MOI.set(
         Cbc_setObjSense(model, 1.0)
     else
         @assert sense == MOI.FEASIBILITY_SENSE
+        for col in Cint(0):Cint(Cbc_getNumCols(model) - 1)
+            Cbc_setObjCoeff(model, col, 0.0)
+        end
         Cbc_setObjSense(model, 0.0)
     end
     return
