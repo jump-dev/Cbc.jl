@@ -15,12 +15,11 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 BinaryProvider = "0.5.9"
 CEnum = "0.3, 0.4"
 Cbc_jll = "=2.10.5, ~200.1000.500"
-MathOptInterface = "0.9.7"
+MathOptInterface = "0.10"
 julia = "1"
 
 [extras]
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Pkg", "Test"]
+test = ["Test"]
