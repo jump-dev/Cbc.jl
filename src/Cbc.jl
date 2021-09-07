@@ -57,12 +57,14 @@ end
 
 # TODO(odow): remove at Cbc.jl v1.0.0.
 function CbcSolver(args...; kwargs...)
-    error("""
-    `CbcSolver` is no longer supported. If you are using JuMP, upgrade to the
-    latest version and use `Cbc.Optimizer` instead. If you are using
-    MathProgBase (e.g., via `lingprog`), you will need to upgrade to
-    MathOptInterface (https://github.com/jump-dev/MathOptInterface.jl).
-    """)
+    return error(
+        """
+  `CbcSolver` is no longer supported. If you are using JuMP, upgrade to the
+  latest version and use `Cbc.Optimizer` instead. If you are using
+  MathProgBase (e.g., via `lingprog`), you will need to upgrade to
+  MathOptInterface (https://github.com/jump-dev/MathOptInterface.jl).
+  """,
+    )
 end
 export CbcSolver
 

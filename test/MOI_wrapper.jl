@@ -6,106 +6,73 @@ import Cbc
 
 const MOI = MathOptInterface
 
-const OPTIMIZER = Cbc.Optimizer()
-MOI.set(OPTIMIZER, MOI.Silent(), true)
+function runtests()
+    for name in names(@__MODULE__; all = true)
+        if startswith("$(name)", "test_")
+            @testset "$(name)" begin
+                getfield(@__MODULE__, name)()
+            end
+        end
+    end
+    return
+end
 
 function test_SolverName()
-    @test MOI.get(OPTIMIZER, MOI.SolverName()) == "COIN Branch-and-Cut (Cbc)"
+    @test MOI.get(Cbc.Optimizer(), MOI.SolverName()) ==
+          "COIN Branch-and-Cut (Cbc)"
 end
 
-function test_supports_default_copy_to()
-    @test !MOI.Utilities.supports_allocate_load(OPTIMIZER, false)
-    @test !MOI.Utilities.supports_allocate_load(OPTIMIZER, true)
-    @test !MOI.Utilities.supports_default_copy_to(OPTIMIZER, false)
-    @test !MOI.Utilities.supports_default_copy_to(OPTIMIZER, true)
+function test_supports_incremental_interface()
+    @test !MOI.supports_incremental_interface(Cbc.Optimizer())
+    return
 end
 
-const CACHED = MOI.Utilities.CachingOptimizer(
-    MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
-    OPTIMIZER,
-)
-const BRIDGED = MOI.Bridges.full_bridge_optimizer(CACHED, Float64)
-
-const CONFIG = MOI.Test.TestConfig(duals = false, infeas_certificates = false)
-
-function test_basic_constraint_tests()
-    return MOI.Test.basic_constraint_tests(CACHED, CONFIG)
-end
-
-function test_Unit()
-    return MOI.Test.unittest(
-        BRIDGED,
-        CONFIG,
-        [
-            # TODO(odow): implement attributes:
-            "number_threads",
-
-            # INFEASIBLE_OR_UNBOUNDED instead of DUAL_INFEASIBLE
-            "solve_unbounded_model",
-
-            # No quadratics
-            "delete_soc_variables",
-            "solve_qcp_edge_cases",
-            "solve_qp_edge_cases",
+function test_runtests()
+    model = MOI.Bridges.full_bridge_optimizer(
+        MOI.Utilities.CachingOptimizer(
+            MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+            Cbc.Optimizer(),
+        ),
+        Float64,
+    )
+    MOI.set(model, MOI.Silent(), true)
+    MOI.Test.runtests(
+        model,
+        MOI.Test.Config(
+            exclude = Any[
+                MOI.ConstraintDual,
+                MOI.DualObjectiveValue,
+                MOI.ConstraintBasisStatus,
+                MOI.VariableBasisStatus,
+            ],
+        ),
+        exclude = [
+            # TODO(odow): bug in Cbc.jl
+            "test_model_copy_to_UnsupportedAttribute",
+            "test_model_ModelFilter_AbstractConstraintAttribute",
+            # TODO(odow): bug in MOI
+            "test_model_LowerBoundAlreadySet",
+            "test_model_UpperBoundAlreadySet",
+            # TODO(odow): upstream bug in Cbc
+            "_Indicator_",
+            "_SOS1_",
+            "_SOS2_",
+            # Can't prove infeasible.
+            "test_conic_NormInfinityCone_INFEASIBLE",
+            "test_conic_NormOneCone_INFEASIBLE",
+            "test_solve_TerminationStatus_DUAL_INFEASIBLE",
         ],
     )
+    return
 end
 
-function test_solvername()
-    @test MOI.get(CACHED, MOI.SolverName()) == "COIN Branch-and-Cut (Cbc)"
-end
-
-function test_default_objective_test()
-    return MOI.Test.default_objective_test(CACHED)
-end
-
-function test_default_status_test()
-    return MOI.Test.default_status_test(CACHED)
-end
-
-function test_nametest()
-    return MOI.Test.nametest(CACHED)
-end
-
-function test_validtest()
-    return MOI.Test.validtest(CACHED)
-end
-
-function test_emptytest()
-    return MOI.Test.emptytest(BRIDGED)
-end
-
-function test_orderedindicestest()
-    return MOI.Test.orderedindicestest(CACHED)
-end
-
-function test_ContinuousLinear()
-    return MOI.Test.contlineartest(BRIDGED, CONFIG)
-end
-
-function test_IntegerLinear()
-    return MOI.Test.intlineartest(
-        BRIDGED,
-        CONFIG,
-        [
-            # Cbc does not support indicator constraints.
-            "indicator1",
-            "indicator2",
-            "indicator3",
-            "indicator4",
-            # SOS issues
-            "int2",
-        ],
-    )
-end
-
-function test_Testparams()
+function test_params()
     # Note: we generate a non-trivial problem to ensure that Cbc struggles to
     # find a solution at the root node.
     knapsack_model = MOI.Utilities.Model{Float64}()
     N = 100
     x = MOI.add_variables(knapsack_model, N)
-    MOI.add_constraint.(knapsack_model, MOI.SingleVariable.(x), MOI.ZeroOne())
+    MOI.add_constraint.(knapsack_model, x, MOI.ZeroOne())
     MOI.add_constraint(
         knapsack_model,
         MOI.ScalarAffineFunction(
@@ -138,9 +105,10 @@ function test_Testparams()
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.SOLUTION_LIMIT
     @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+    return
 end
 
-function test_TestPrimalStatus()
+function test_PrimalStatus()
     model = MOI.Utilities.Model{Float64}()
     x = MOI.add_variable(model)
     MOI.add_constraint(model, x, MOI.GreaterThan(1.0))
@@ -148,18 +116,7 @@ function test_TestPrimalStatus()
     cbc = Cbc.Optimizer()
     MOI.copy_to(cbc, model)
     MOI.optimize!(cbc)
-    return MOI.get(cbc, MOI.PrimalStatus()) == MOI.NO_SOLUTION
-end
-
-function runtests()
-    for name in names(@__MODULE__; all = true)
-        if !startswith("$name", "test_")
-            continue
-        end
-        @testset "$(name)" begin
-            getfield(@__MODULE__, name)()
-        end
-    end
+    MOI.get(cbc, MOI.PrimalStatus()) == MOI.NO_SOLUTION
     return
 end
 
