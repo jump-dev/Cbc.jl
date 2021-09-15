@@ -65,7 +65,7 @@ The following options are likely to be the most useful:
 
 * `ratioGap` -- Terminate after optimality gap is smaller than this relative fraction.
 
-    For example, `set_optimizer_attribute(model, "allowableGap", 0.05)`.
+    For example, `set_optimizer_attribute(model, "ratioGap", 0.05)`.
 
 * `threads` -- Set the number of threads to use for parallel branch & bound.
 
