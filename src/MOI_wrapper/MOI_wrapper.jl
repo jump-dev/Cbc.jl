@@ -734,6 +734,8 @@ function MOI.optimize!(model::Optimizer)
         Cbc_setMIPStartI(model, length(columns), columns, values)
     end
     t = time()
+    model.variable_primal = nothing
+    model.constraint_primal = nothing
     model.termination_status = Cbc_solve(model)
     model.has_solution = _result_count(model)
     model.solve_time = time() - t
