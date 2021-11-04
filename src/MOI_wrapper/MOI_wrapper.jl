@@ -11,6 +11,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     objective_constant::Float64
     solve_time::Float64
     termination_status::Cint
+    has_solution::Bool
+    variable_primal::Union{Nothing,Vector{Float64}}
+    constraint_primal::Union{Nothing,Vector{Float64}}
 
     """
         Optimizer()
@@ -26,6 +29,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             0.0,
             0.0,
             Cint(-1),
+            false,
+            nothing,
+            nothing,
         )
         if length(kwargs) > 0
             @warn("""Passing optimizer attributes as keyword arguments to
@@ -127,6 +133,9 @@ function MOI.empty!(model::Optimizer)
         Cbc_setParameter(model, "logLevel", "0")
     end
     empty!(model.variable_start)
+    model.has_solution = false
+    model.variable_primal = nothing
+    model.constraint_primal = nothing
     return
 end
 
@@ -714,21 +723,6 @@ end
 ### Optimize and post-optimize functions
 ###
 
-function _unsafe_wrap_cbc_array(
-    model::Optimizer,
-    f::F,
-    n::Integer,
-    indices;
-    own::Bool = false,
-) where {F<:Function}
-    p = f(model)
-    if p == C_NULL
-        return map(x -> NaN, indices)
-    end
-    x = unsafe_wrap(Array, p, (n,); own = own)
-    return x[indices]
-end
-
 function MOI.optimize!(model::Optimizer)
     if !isempty(model.variable_start)
         columns = fill(Cint(0), length(model.variable_start))
@@ -741,6 +735,7 @@ function MOI.optimize!(model::Optimizer)
     end
     t = time()
     model.termination_status = Cbc_solve(model)
+    model.has_solution = _result_count(model)
     model.solve_time = time() - t
     return
 end
@@ -776,46 +771,51 @@ function MOI.get(model::Optimizer, ::MOI.RelativeGap)
     return isnan(gap) ? Inf : gap
 end
 
-function MOI.get(
-    model::Optimizer,
-    attr::MOI.VariablePrimal,
-    x::MOI.VariableIndex,
-)
-    MOI.check_result_index_bounds(model, attr)
-    return _unsafe_wrap_cbc_array(
-        model,
-        Cbc_getColSolution,
-        Cbc_getNumCols(model),
-        x.value,
-    )
+_update_cache(::Optimizer, data::Vector{Float64}, ::Any, ::Any) = data
+
+function _update_cache(model::Optimizer, ::Nothing, f_p::F, f_n::G) where {F,G}
+    p = f_p(model)
+    n = f_n(model)
+    if p == C_NULL
+        return fill(NaN, n)
+    end
+    return unsafe_wrap(Array, p, (n,))
+end
+
+_get_cached_solution(data::Vector{Float64}, x) = data[x.value]
+
+function _get_cached_solution(data::Vector{Float64}, x::Vector)
+    return [data[xi.value] for xi in x]
 end
 
 function MOI.get(
     model::Optimizer,
     attr::MOI.VariablePrimal,
-    x::Vector{MOI.VariableIndex},
+    x::Union{MOI.VariableIndex,Vector{MOI.VariableIndex}},
 )
     MOI.check_result_index_bounds(model, attr)
-    return _unsafe_wrap_cbc_array(
+    model.variable_primal = _update_cache(
         model,
+        model.variable_primal,
         Cbc_getColSolution,
-        Cbc_getNumCols(model),
-        [xi.value for xi in x],
+        Cbc_getNumCols,
     )
+    return _get_cached_solution(model.variable_primal, x)
 end
 
 function MOI.get(
     model::Optimizer,
     attr::MOI.ConstraintPrimal,
-    index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},<:Any},
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},<:Any},
 )
     MOI.check_result_index_bounds(model, attr)
-    return _unsafe_wrap_cbc_array(
+    model.constraint_primal = _update_cache(
         model,
+        model.constraint_primal,
         Cbc_getRowActivity,
-        Cbc_getNumRows(model),
-        index.value,
+        Cbc_getNumRows,
     )
+    return _get_cached_solution(model.constraint_primal, c)
 end
 
 function MOI.get(
@@ -877,7 +877,9 @@ function MOI.get(model::Optimizer, ::MOI.RawStatusString)
     """
 end
 
-function MOI.get(model::Optimizer, ::MOI.ResultCount)
+MOI.get(model::Optimizer, ::MOI.ResultCount) = model.has_solution ? 1 : 0
+
+function _result_count(model::Optimizer)
     if _CBC_VERSION == v"2.10.3"
         # TODO(odow): Cbc_jll@2.10.3 and the BinaryProvider version shipped in
         # Julia <1.3 contain a patch that is different to upstream. This branch
