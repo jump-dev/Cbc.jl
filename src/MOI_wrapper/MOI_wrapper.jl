@@ -112,6 +112,8 @@ end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "COIN Branch-and-Cut (Cbc)"
 
+MOI.get(::Optimizer, ::MOI.SolverVersion) = _CBC_VERSION_STRING
+
 function MOI.empty!(model::Optimizer)
     Cbc_deleteModel(model)
     model.inner = Cbc_newModel()
