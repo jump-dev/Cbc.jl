@@ -1,25 +1,25 @@
-# COIN-OR Branch and Cut Interface (Cbc.jl)
-
 [![](https://www.coin-or.org/wordpress/wp-content/uploads/2014/08/COINOR.png)](https://www.coin-or.org)
 
-`Cbc.jl` is an interface to the **[COIN-OR Branch and Cut](https://projects.coin-or.org/Cbc)**
-solver. It provides a complete interface to the low-level C API, as well as an
-implementation of the solver-independent `MathOptInterface`
-API's
-
-*Note: This wrapper is maintained by the JuMP community and is not a COIN-OR
-project.*
+# Cbc.jl
 
 [![Build Status](https://github.com/jump-dev/Cbc.jl/workflows/CI/badge.svg?branch=master)](https://github.com/jump-dev/Cbc.jl/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/jump-dev/Cbc.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jump-dev/Cbc.jl)
 
+`Cbc.jl` is a Julia wrapper for the [COIN-OR Branch and Cut (Cbc)](https://projects.coin-or.org/Cbc)
+solver. 
+
+The wrapper has two components:
+ * a thin wrapper around the complete C API
+ * an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface)
+
+*Note: This wrapper is maintained by the JuMP community and is not a COIN-OR
+project.*
+
 ## Installation
 
-The package can be installed with `Pkg.add`.
-
+Install Cbc.jl using `Pkg.add`:
 ```julia
-import Pkg
-Pkg.add("Cbc")
+import Pkg; Pkg.add("Cbc")
 ```
 
 In addition to installing the Cbc.jl package, this will also download and
@@ -27,12 +27,11 @@ install the Cbc binaries. (You do not need to install Cbc separately.) If you
 require a custom build of Cbc, see the **Custom Installation** instructions
 below.
 
-## Using with JuMP
+## Use with JuMP
 
-Use `Cbc.Optimizer` to use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl):
+To use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl), use `Cbc.Optimizer`:
 ```julia
-using Cbc
-using JuMP
+using JuMP, Cbc
 model = Model(Cbc.Optimizer)
 set_optimizer_attribute(model, "logLevel", 1)
 ```
@@ -86,8 +85,9 @@ end
 
 To install custom built Cbc binaries, use the environmental variable
 `JULIA_CBC_LIBRARY_PATH` to point to the path at which you installed Cbc (the
-folder containing `libCbcSolver`). For example, on Mac, after installing Cbc
-with `brew install cbc`, use:
+folder containing `libCbcSolver`). 
+
+For example, on Mac, after installing Cbc with `brew install cbc`, use:
 ```julia
 ENV["JULIA_CBC_LIBRARY_PATH"] = "/usr/local/Cellar/cbc/2.10.5/lib"
 import Pkg
