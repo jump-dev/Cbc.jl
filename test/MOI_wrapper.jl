@@ -210,7 +210,7 @@ function test_SOS1()
     return
 end
 
-# The test_linear_SOS1_integration test with the additional requirement that all
+# The test_linear_SOS2_integration test with the additional requirement that all
 # variables are integer.
 function test_SOS2()
     model = MOI.Bridges.full_bridge_optimizer(
