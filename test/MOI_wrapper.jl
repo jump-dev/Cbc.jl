@@ -55,8 +55,9 @@ function test_runtests()
             "test_model_UpperBoundAlreadySet",
             # TODO(odow): upstream bug in Cbc
             "_Indicator_",
-            "_SOS1_",
-            "_SOS2_",
+            "test_linear_SOS1_integration",
+            "test_linear_SOS2_integration",
+            "test_solve_SOS2_add_and_delete",
             # Can't prove infeasible.
             "test_conic_NormInfinityCone_INFEASIBLE",
             "test_conic_NormOneCone_INFEASIBLE",
