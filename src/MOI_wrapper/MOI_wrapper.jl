@@ -425,7 +425,7 @@ function _load_constraint(
     push!(model.sos1_starts, Cint(length(model.sos1_weights)))
     append!(model.sos1_weights, set.weights)
     for v in func.variables
-        push!(model.sos1_indices, _column_value(mapping, v))
+        push!(model.sos1_indices, _column_value(mapping, v) - Cint(1))
     end
     return
 end
@@ -440,7 +440,7 @@ function _load_constraint(
     push!(model.sos2_starts, Cint(length(model.sos2_weights)))
     append!(model.sos2_weights, set.weights)
     for v in func.variables
-        push!(model.sos2_indices, _column_value(mapping, v))
+        push!(model.sos2_indices, _column_value(mapping, v) - Cint(1))
     end
     return
 end
@@ -651,8 +651,8 @@ function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike)
         cbc_dest,
         tmp_model.num_cols,
         tmp_model.num_rows,
-        Cint.(A.colptr .- 1),
-        Cint.(A.rowval .- 1),
+        A.colptr .- Cint(1),
+        A.rowval .- Cint(1),
         A.nzval,
         tmp_model.col_lb,
         tmp_model.col_ub,
