@@ -190,11 +190,7 @@ function test_SOS1()
     @test MOI.get(model, MOI.ResultCount()) >= 1
     @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
     @test isapprox(MOI.get(model, MOI.ObjectiveValue()), 3, config)
-    @test isapprox(
-        MOI.get(model, MOI.VariablePrimal(), v),
-        [0, 1, 2],
-        config,
-    )
+    @test isapprox(MOI.get(model, MOI.VariablePrimal(), v), [0, 1, 2], config)
     MOI.delete(model, c1)
     MOI.delete(model, c2)
     MOI.optimize!(model)
@@ -202,11 +198,7 @@ function test_SOS1()
     @test MOI.get(model, MOI.ResultCount()) >= 1
     @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
     @test isapprox(MOI.get(model, MOI.ObjectiveValue()), 5, config)
-    @test isapprox(
-        MOI.get(model, MOI.VariablePrimal(), v),
-        [1, 1, 2],
-        config,
-    )
+    @test isapprox(MOI.get(model, MOI.VariablePrimal(), v), [1, 1, 2], config)
     return
 end
 
