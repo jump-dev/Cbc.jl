@@ -310,4 +310,4 @@ end
 
 end
 
-# TestMOIWrapper.runtests()
+TestMOIWrapper.runtests()
