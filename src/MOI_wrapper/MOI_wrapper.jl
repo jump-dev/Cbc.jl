@@ -425,7 +425,7 @@ function _load_constraint(
     push!(model.sos1_starts, Cint(length(model.sos1_weights)))
     append!(model.sos1_weights, set.weights)
     for v in func.variables
-        push!(model.sos1_indices, _column_value(mapping, v))
+        push!(model.sos1_indices, _column_value(mapping, v) - Cint(1))
     end
     return
 end
@@ -440,7 +440,7 @@ function _load_constraint(
     push!(model.sos2_starts, Cint(length(model.sos2_weights)))
     append!(model.sos2_weights, set.weights)
     for v in func.variables
-        push!(model.sos2_indices, _column_value(mapping, v))
+        push!(model.sos2_indices, _column_value(mapping, v) - Cint(1))
     end
     return
 end
