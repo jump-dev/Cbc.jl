@@ -90,13 +90,12 @@ function test_params()
             0.0,
         ),
     )
-    model = Cbc.Optimizer(
-        maxSol = 1,
-        presolve = "off",
-        cuts = "off",
-        heur = "off",
-        logLevel = 0,
-    )
+    model = Cbc.Optimizer()
+    MOI.set(model, MOI.RawOptimizerAttribute("maxSol"), 1)
+    MOI.set(model, MOI.RawOptimizerAttribute("presolve"), "off")
+    MOI.set(model, MOI.RawOptimizerAttribute("cuts"), "off")
+    MOI.set(model, MOI.RawOptimizerAttribute("heur"), "off")
+    MOI.set(model, MOI.RawOptimizerAttribute("logLevel"), 0)
     MOI.copy_to(model, knapsack_model)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.SOLUTION_LIMIT
