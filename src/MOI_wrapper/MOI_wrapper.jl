@@ -1,8 +1,10 @@
-import MathOptInterface
-import SparseArrays
-
 const MOI = MathOptInterface
 
+"""
+    Optimizer()
+
+Create a new Cbc Optimizer.
+"""
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Ptr{Cvoid}
     silent::Bool
@@ -15,12 +17,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     variable_primal::Union{Nothing,Vector{Float64}}
     constraint_primal::Union{Nothing,Vector{Float64}}
 
-    """
-        Optimizer()
-
-    Create a new Cbc Optimizer.
-    """
-    function Optimizer(; kwargs...)
+    function Optimizer()
         model = new(
             Cbc_newModel(),
             false,
@@ -33,21 +30,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             nothing,
             nothing,
         )
-        if length(kwargs) > 0
-            @warn("""Passing optimizer attributes as keyword arguments to
-            Cbc.Optimizer is deprecated. Use
-                MOI.set(model, MOI.RawOptimizerAttribute("key"), value)
-            or
-                JuMP.set_optimizer_attribute(model, "key", value)
-            instead.
-            """)
-        end
-        for (key, value) in kwargs
-            MOI.set(model, MOI.RawOptimizerAttribute("$(key)"), value)
-        end
-        finalizer(model) do m
-            return Cbc_deleteModel(m)
-        end
+        finalizer(Cbc_deleteModel, model)
         return model
     end
 end
@@ -118,7 +101,7 @@ end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "COIN Branch-and-Cut (Cbc)"
 
-MOI.get(::Optimizer, ::MOI.SolverVersion) = _CBC_VERSION_STRING
+MOI.get(::Optimizer, ::MOI.SolverVersion) = unsafe_string(Cbc_getVersion())
 
 function MOI.empty!(model::Optimizer)
     Cbc_deleteModel(model)
@@ -882,12 +865,6 @@ end
 MOI.get(model::Optimizer, ::MOI.ResultCount) = model.has_solution ? 1 : 0
 
 function _result_count(model::Optimizer)
-    if _CBC_VERSION == v"2.10.3"
-        # TODO(odow): Cbc_jll@2.10.3 and the BinaryProvider version shipped in
-        # Julia <1.3 contain a patch that is different to upstream. This branch
-        # can be removed when we drop support for Julia 1.0 and the 2.10.3 JLL.
-        return Cbc_numberSavedSolutions(model) > 0 ? 1 : 0
-    end
     if Cbc_getNumIntegers(model) == 0
         # Cbc forwards the solve to the LP solver if there are no integers, so
         # check the termination status for the result count.
