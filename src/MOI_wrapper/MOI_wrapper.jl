@@ -1,6 +1,3 @@
-import MathOptInterface
-import SparseArrays
-
 const MOI = MathOptInterface
 
 """

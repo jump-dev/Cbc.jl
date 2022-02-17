@@ -1,6 +1,8 @@
 module Cbc
 
 import Cbc_jll
+import MathOptInterface
+import SparseArrays
 
 function __init__()
     global libcbcsolver = Cbc_jll.libcbcsolver

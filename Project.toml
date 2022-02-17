@@ -10,7 +10,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
 Cbc_jll = "=2.10.5, ~200.1000.500"
-MathOptInterface = "0.10.6"
+MathOptInterface = "1"
 julia = "1.6"
 
 [extras]
