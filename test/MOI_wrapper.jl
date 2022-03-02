@@ -346,7 +346,7 @@ function test_VariablePrimalStart()
         return sol, MOI.get(model, MOI.NodeCount())
     end
     x_sol, nodes = formulate_and_solve(nothing)
-    y_sol, nodes_start = formulate_and_solve(x)
+    y_sol, nodes_start = formulate_and_solve(x_sol)
     @test x_sol == y_sol
     @test nodes > 0
     @test nodes_start == 0
