@@ -330,8 +330,19 @@ function MOI.copy_to(
     dest::Optimizer,
     src::MOI.Utilities.UniversalFallback{OptimizerCache},
 )
-    MOI.Utilities.throw_unsupported(src)
-    return MOI.copy_to(dest, src.model)
+    attr = MOI.VariablePrimalStart()
+    MOI.Utilities.throw_unsupported(
+        src;
+        excluded_attributes = Any[MOI.VariablePrimalStart()],
+    )
+    index_map = MOI.copy_to(dest, src.model)
+    if attr in MOI.get(src, MOI.ListOfVariableAttributesSet())
+        for (x_src, x_dest) in index_map.var_map
+            value = MOI.get(src, attr, x_src)
+            MOI.set(dest, attr, x_dest, value)
+        end
+    end
+    return index_map
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
@@ -477,7 +488,7 @@ function MOI.get(model::Optimizer, ::MOI.ObjectiveBound)
     return Cbc_getBestPossibleObjValue(model) + model.objective_constant
 end
 
-function MOI.get(model::Optimizer, ::MOI.NodeCount)
+function MOI.get(model::Optimizer, ::MOI.NodeCount)::Int64
     return Cbc_getNodeCount(model)
 end
 
