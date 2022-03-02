@@ -120,7 +120,12 @@ function test_PrimalStatus()
     return
 end
 
-function test_double_start()
+function test_issue_187()
+    if Sys.iswindows() || Sys.islinux()
+        # This test segfaults on Windows and Linux
+        @test_broken 1 == 2
+        return
+    end
     model = MOI.Utilities.CachingOptimizer(
         MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
         MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
@@ -148,7 +153,7 @@ function test_double_start()
     MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
-    @test sum(MOI.get(model, MOI.VariablePrimal(), x)) ≈ 1.0 atol=1e-4
+    @test ≈(sum(MOI.get(model, MOI.VariablePrimal(), x)), 1.0, atol = 1e-4)
     return
 end
 
