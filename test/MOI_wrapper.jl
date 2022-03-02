@@ -28,12 +28,9 @@ function test_supports_incremental_interface()
 end
 
 function test_runtests()
-    model = MOI.Bridges.full_bridge_optimizer(
-        MOI.Utilities.CachingOptimizer(
-            MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
-            Cbc.Optimizer(),
-        ),
-        Float64,
+    model = MOI.Utilities.CachingOptimizer(
+        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+        MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
     )
     MOI.set(model, MOI.Silent(), true)
     MOI.Test.runtests(
@@ -47,14 +44,8 @@ function test_runtests()
             ],
         ),
         exclude = [
-            # TODO(odow): bug in Cbc.jl
-            "test_model_copy_to_UnsupportedAttribute",
-            "test_model_ModelFilter_AbstractConstraintAttribute",
-            # TODO(odow): bug in MOI
-            "test_model_LowerBoundAlreadySet",
-            "test_model_UpperBoundAlreadySet",
             # TODO(odow): upstream bug in Cbc
-            "_Indicator_",
+            "test_linear_Indicator_",
             "test_linear_SOS1_integration",
             "test_linear_SOS2_integration",
             "test_solve_SOS2_add_and_delete",
@@ -344,6 +335,61 @@ function test_SOS2()
         [0.0, 0.0, 2.0, 2.0, 0.0, 2.0, 0.0, 0.0, 6.0, 24.0],
         config,
     )
+    return
+end
+
+"""
+    test_VariablePrimalStart()
+
+Testing that VariablePrimalStart is actually applied is a little convoluted.
+
+We formulate a MIP with various setttings turned off to avoid a trivial solve in
+presolve.
+
+Then we solve and return the optimal primal solution and the number of nodes
+visited.
+
+For the second pass, we rebuild the same MIP, but this time we pass the optimal
+solution as the VariablePrimalStart, and we set maxSol=1 to force Cbc to exit
+after finding a single solution. Because we passed a primal feasible point, it
+should return the optimal solution after exploring 0 nodes.
+"""
+function test_VariablePrimalStart()
+    function formulate_and_solve(start)
+        model = MOI.Utilities.CachingOptimizer(
+            MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+            MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
+        )
+        MOI.set(model, MOI.RawOptimizerAttribute("presolve"), "off")
+        MOI.set(model, MOI.RawOptimizerAttribute("cuts"), "off")
+        MOI.set(model, MOI.RawOptimizerAttribute("heur"), "off")
+        MOI.set(model, MOI.RawOptimizerAttribute("logLevel"), 0)
+        N = 100
+        x = MOI.add_variables(model, N)
+        MOI.add_constraint.(model, x, MOI.ZeroOne())
+        w = [1 + sin(i) for i in 1:N]
+        c = [1 + cos(i) for i in 1:N]
+        if start !== nothing
+            MOI.set(model, MOI.RawOptimizerAttribute("maxSol"), 1)
+            MOI.set.(model, MOI.VariablePrimalStart(), x, start)
+        end
+        MOI.add_constraint(
+            model,
+            MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(w, x), 0.0),
+            MOI.LessThan(10.0),
+        )
+        obj = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(c, x), 0.0)
+        MOI.set(model, MOI.ObjectiveFunction{typeof(obj)}(), obj)
+        MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+        MOI.optimize!(model)
+        sol = MOI.get.(model, MOI.VariablePrimal(), x)
+        return sol, MOI.get(model, MOI.NodeCount())
+    end
+    x_sol, nodes = formulate_and_solve(nothing)
+    y_sol, nodes_start = formulate_and_solve(x_sol)
+    @test x_sol == y_sol
+    @test nodes > 0
+    @test nodes_start == 0
     return
 end
 
