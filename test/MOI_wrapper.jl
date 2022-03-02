@@ -108,6 +108,46 @@ function test_params()
     return
 end
 
+"""
+    test_threads()
+
+Test solving a model with the threads parameter set.
+
+See issues #112 and #186.
+"""
+function test_threads()
+    if Sys.iswindows()
+        # This test is broken on Windows with a weird error.
+        @test_broken 1 == 2
+        return
+    end
+    model = MOI.Utilities.CachingOptimizer(
+        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+        MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
+    )
+    MOI.set(model, MOI.RawOptimizerAttribute("presolve"), "off")
+    MOI.set(model, MOI.RawOptimizerAttribute("cuts"), "off")
+    MOI.set(model, MOI.RawOptimizerAttribute("heur"), "off")
+    MOI.set(model, MOI.RawOptimizerAttribute("threads"), 4)
+    MOI.set(model, MOI.RawOptimizerAttribute("logLevel"), 3)
+    N = 100
+    x = MOI.add_variables(model, N)
+    MOI.add_constraint.(model, x, MOI.ZeroOne())
+    w = [1 + sin(i) for i in 1:N]
+    c = [1 + cos(i) for i in 1:N]
+    MOI.add_constraint(
+        model,
+        MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(w, x), 0.0),
+        MOI.LessThan(10.0),
+    )
+    obj = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(c, x), 0.0)
+    MOI.set(model, MOI.ObjectiveFunction{typeof(obj)}(), obj)
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    return
+end
+
 function test_PrimalStatus()
     model = MOI.Utilities.Model{Float64}()
     x = MOI.add_variable(model)
