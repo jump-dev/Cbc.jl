@@ -1,5 +1,55 @@
 const MOI = MathOptInterface
 
+MOI.Utilities.@product_of_sets(
+    _LPProductOfSets,
+    MOI.EqualTo{T},
+    MOI.LessThan{T},
+    MOI.GreaterThan{T},
+    MOI.Interval{T},
+)
+
+MOI.Utilities.@struct_of_constraints_by_set_types(
+    _CbcConstraints,
+    Union{
+        MOI.EqualTo{T},
+        MOI.LessThan{T},
+        MOI.GreaterThan{T},
+        MOI.Interval{T},
+    },
+    MOI.ZeroOne,
+    MOI.Integer,
+    MOI.SOS1{T},
+    MOI.SOS2{T},
+)
+
+const OptimizerCache = MOI.Utilities.GenericModel{
+    Float64,
+    MOI.Utilities.ObjectiveContainer{Float64},
+    MOI.Utilities.VariablesContainer{Float64},
+    _CbcConstraints{Float64}{
+        MOI.Utilities.MatrixOfConstraints{
+            Float64,
+            MOI.Utilities.MutableSparseMatrixCSC{
+                Float64,
+                Cint,
+                MOI.Utilities.ZeroBasedIndexing,
+            },
+            MOI.Utilities.Hyperrectangle{Float64},
+            _LPProductOfSets{Float64},
+        },
+        MOI.Utilities.VectorOfConstraints{MOI.VariableIndex,MOI.ZeroOne},
+        MOI.Utilities.VectorOfConstraints{MOI.VariableIndex,MOI.Integer},
+        MOI.Utilities.VectorOfConstraints{
+            MOI.VectorOfVariables,
+            MOI.SOS1{Float64},
+        },
+        MOI.Utilities.VectorOfConstraints{
+            MOI.VectorOfVariables,
+            MOI.SOS2{Float64},
+        },
+    },
+}
+
 """
     Optimizer()
 
@@ -37,6 +87,10 @@ end
 
 Base.cconvert(::Type{Ptr{Cvoid}}, model::Optimizer) = model
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, model::Optimizer) = model.inner
+
+function MOI.default_cache(::Optimizer, ::Type{Float64})
+    return MOI.Utilities.UniversalFallback(OptimizerCache())
+end
 
 function MOI.supports(::Optimizer, ::MOI.RawOptimizerAttribute)
     # TODO(odow): There is no programatical way throught the C API to check if a
@@ -126,74 +180,186 @@ function MOI.is_empty(model::Optimizer)
     return Cbc_getNumCols(model) == 0 && Cbc_getNumRows(model) == 0
 end
 
-mutable struct _CbcModelFormat
-    num_rows::Cint
-    num_cols::Cint
-    # (row_idx, col_idx, values) are the sparse elements of the constraint matrix.
-    row_idx::Vector{Cint}
-    col_idx::Vector{Cint}
-    values::Vector{Float64}
-    # Constraint bounds.
-    row_lb::Vector{Float64}
-    row_ub::Vector{Float64}
-    # Variable bounds.
-    col_lb::Vector{Float64}
-    col_ub::Vector{Float64}
-    # Columns that are binary or integer
-    binary::Vector{Int}
-    integer::Vector{Int}
-    # SOS1 constraints
-    sos1_starts::Vector{Cint}
-    sos1_indices::Vector{Cint}
-    sos1_weights::Vector{Float64}
-    # SOS2 constraints
-    sos2_starts::Vector{Cint}
-    sos2_indices::Vector{Cint}
-    sos2_weights::Vector{Float64}
-    # Objective coefficients.
-    obj::Vector{Float64}
-    objective_constant::Float64
 
-    # An `InexactError` might occur if `num_rows` or `num_cols` is too
-    # large, e.g., if `num_cols isa Int64` and is larger than 2^31 on
-    # 32-bit hardware.
-    function _CbcModelFormat(num_rows::Cint, num_cols::Cint)
-        return new(
-            num_rows,
-            num_cols,
-            # Constraint matrix.
-            Cint[],
-            Cint[],
-            Float64[],
-            # Row lower/upper bounds.
-            fill(-Inf, num_rows),
-            fill(Inf, num_rows),
-            # Column lower/upper bounds.
-            fill(-Inf, num_cols),
-            fill(Inf, num_cols),
-            # Binary/Integer columns.
-            Cint[],
-            Cint[],
-            # SOSI constraints.
-            Cint[],
-            Cint[],
-            Float64[],
-            # SOSII constraints.
-            Cint[],
-            Cint[],
-            Float64[],
-            # Objective vector and offset.
-            fill(0.0, num_cols),
-            0.0,
+function _index_map(
+    src::OptimizerCache,
+    ::MOI.IndexMap,
+    ci::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction},
+)
+    return MOI.Utilities.rows(src.constraints.moi_equalto, ci)
+end
+
+function _index_map(
+    ::OptimizerCache,
+    index_map::MOI.IndexMap,
+    ci::MOI.ConstraintIndex{<:MOI.VariableIndex},
+)
+    return index_map[MOI.VariableIndex(ci.value)].value
+end
+
+function _index_map(
+    ::OptimizerCache,
+    ::MOI.IndexMap,
+    ci::MOI.ConstraintIndex{<:MOI.VectorOfVariables},
+)
+    return ci.value
+end
+
+function _index_map(
+    src::OptimizerCache,
+    index_map::MOI.IndexMap,
+    ::Type{F},
+    ::Type{S},
+) where {F,S}
+    inner = index_map.con_map[F, S]
+    for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
+        inner[ci] = MOI.ConstraintIndex{F,S}(_index_map(src, index_map, ci))
+    end
+    return
+end
+
+"""
+    _index_map(src::OptimizerCache)
+
+Create an `IndexMap` mapping the variables and constraints in `OptimizerCache`
+to their corresponding 1-based columns and rows.
+"""
+function _index_map(src::OptimizerCache)
+    index_map = MOI.IndexMap()
+    for (i, x) in enumerate(MOI.get(src, MOI.ListOfVariableIndices()))
+        index_map[x] = MOI.VariableIndex(i)
+    end
+    for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
+        _index_map(src, index_map, F, S)
+    end
+    return index_map
+end
+
+function _constraint_matrix(constraints, n)
+    @assert n == constraints.coefficients.n
+    return (
+        m = constraints.coefficients.m,
+        n = constraints.coefficients.n,
+        colptr = constraints.coefficients.colptr,
+        rowval = constraints.coefficients.rowval,
+        nzval = constraints.coefficients.nzval,
+        lower = constraints.constants.lower,
+        upper = constraints.constants.upper,
+    )
+end
+
+function _constraint_matrix(::Nothing, n)
+    return (
+        m = 0,
+        n = n,
+        colptr = Cint[],
+        rowval = Cint[],
+        nzval = Cdouble[],
+        lower = Cdouble[],
+        upper = Cdouble[],
+    )
+end
+
+function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
+    matrix = _constraint_matrix(
+        src.constraints.moi_equalto,
+        MOI.get(src, MOI.NumberOfVariables()),
+    )
+    c = zeros(matrix.n)
+    obj =
+        MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    for term in obj.terms
+        c[term.variable.value] += term.coefficient
+    end
+    dest.objective_constant = obj.constant
+    zeroone_attr = MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.ZeroOne}()
+    binaries = Cint[Cint(ci.value - 1) for ci in MOI.get(src, zeroone_attr)]
+    variable_lower = copy(src.variables.lower)
+    variable_upper = copy(src.variables.upper)
+    for b in binaries
+        variable_lower[b+1] = max(variable_lower[b+1], 0.0)
+        variable_upper[b+1] = min(variable_upper[b+1], 1.0)
+    end
+    Cbc_loadProblem(
+        dest,
+        matrix.n,
+        matrix.m,
+        matrix.colptr,
+        matrix.rowval,
+        matrix.nzval,
+        variable_lower,
+        variable_upper,
+        c,
+        matrix.lower,
+        matrix.upper,
+    )
+    sense = MOI.get(src, MOI.ObjectiveSense())
+    if sense == MOI.MIN_SENSE
+        Cbc_setObjSense(dest, 1)
+    elseif sense == MOI.MAX_SENSE
+        Cbc_setObjSense(dest, -1)
+    else
+        @assert sense == MOI.FEASIBILITY_SENSE
+        Cbc_setObjSense(dest, 0)
+    end
+    Cbc_setInteger.(dest, binaries)
+    attr = MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.Integer}()
+    for ci in MOI.get(src, attr)
+        Cbc_setInteger(dest, Cint(ci.value - 1))
+    end
+    any_sos = false
+    for (S, type) in ((MOI.SOS1{Float64}, 1), (MOI.SOS2{Float64}, 2))
+        starts, indices, weights = Cint[], Cint[], Float64[]
+        attr = MOI.ListOfConstraintIndices{MOI.VectorOfVariables,S}()
+        for ci in MOI.get(src, attr)
+            any_sos = true
+            push!(starts, length(weights))
+            f = MOI.get(src, MOI.ConstraintFunction(), ci)
+            for x in f.variables
+                push!(indices, Cint(x.value - 1))
+            end
+            s = MOI.get(src, MOI.ConstraintSet(), ci)
+            append!(weights, s.weights)
+        end
+        N = Cint(length(starts))
+        if N > 0
+            Cbc_addSOS(dest, N, starts, indices, weights, Cint(type))
+        end
+    end
+    if any_sos && Cbc_getNumIntegers(dest) == 0
+        @warn(
+            "There are known correctness issues using Cbc with SOS " *
+            "constraints and no binary variables.",
         )
     end
+    return _index_map(src)
+end
+
+function MOI.copy_to(
+    dest::Optimizer,
+    src::MOI.Utilities.UniversalFallback{OptimizerCache},
+)
+    MOI.Utilities.throw_unsupported(src)
+    return MOI.copy_to(dest, src.model)
+end
+
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
+    cache = MOI.default_cache(dest, Float64)
+    src_cache = MOI.copy_to(cache, src)
+    cache_dest = MOI.copy_to(dest, cache)
+    index_map = MOI.IndexMap()
+    for (src_x, cache_x) in src_cache.var_map
+        index_map[src_x] = cache_dest[cache_x]
+    end
+    for (src_ci, cache_ci) in src_cache.con_map
+        index_map[src_ci] = cache_dest[cache_ci]
+    end
+    return index_map
 end
 
 ###
-### VariableIndex-in-{EqualTo,LessThan,GreaterThan,Interval,ZeroOne,Integer}
+### supports and supports_constraint
 ###
-
-_column_value(map::MOI.IndexMap, index::MOI.VariableIndex) = map[index].value
 
 function MOI.supports_constraint(
     ::Optimizer,
@@ -220,101 +386,6 @@ function MOI.supports_constraint(
     return true
 end
 
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VariableIndex,
-    set::MOI.EqualTo,
-)
-    column = _column_value(mapping, func)
-    model.col_lb[column] = set.value
-    model.col_ub[column] = set.value
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VariableIndex,
-    set::MOI.LessThan,
-)
-    column = _column_value(mapping, func)
-    model.col_ub[column] = set.upper
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VariableIndex,
-    set::MOI.GreaterThan,
-)
-    column = _column_value(mapping, func)
-    model.col_lb[column] = set.lower
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VariableIndex,
-    set::MOI.Interval,
-)
-    column = _column_value(mapping, func)
-    model.col_lb[column] = set.lower
-    model.col_ub[column] = set.upper
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VariableIndex,
-    ::MOI.ZeroOne,
-)
-    push!(model.binary, _column_value(mapping, func) - 1)
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VariableIndex,
-    ::MOI.Integer,
-)
-    push!(model.integer, _column_value(mapping, func) - 1)
-    return
-end
-
-function _load_constraints(
-    model::_CbcModelFormat,
-    src::MOI.ModelLike,
-    mapping::MOI.IndexMap,
-    F::Type{<:MOI.AbstractFunction},
-    S::Type{<:MOI.AbstractSet},
-)
-    for index in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-        _load_constraint(
-            index,
-            model,
-            mapping,
-            MOI.get(src, MOI.ConstraintFunction(), index),
-            MOI.get(src, MOI.ConstraintSet(), index),
-        )
-    end
-    return
-end
-
-###
-### ScalarAffineFunction-in-{EqualTo, LessThan, GreaterThan, Interval}
-###
-
 function MOI.supports_constraint(
     ::Optimizer,
     ::Type{MOI.ScalarAffineFunction{Float64}},
@@ -330,161 +401,13 @@ function MOI.supports_constraint(
     return true
 end
 
-function _add_terms(
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S},
-    func::MOI.ScalarAffineFunction{Float64},
-) where {S}
-    for term in func.terms
-        push!(model.row_idx, mapping[index].value)
-        push!(model.col_idx, _column_value(mapping, term.variable))
-        push!(model.values, term.coefficient)
-    end
-    return
-end
-
-function _load_constraint(
-    index::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.ScalarAffineFunction,
-    set::MOI.EqualTo,
-)
-    _add_terms(model, mapping, index, func)
-    row = mapping[index].value
-    model.row_lb[row] = set.value - func.constant
-    model.row_ub[row] = set.value - func.constant
-    return
-end
-
-function _load_constraint(
-    index::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.ScalarAffineFunction,
-    set::MOI.GreaterThan,
-)
-    _add_terms(model, mapping, index, func)
-    row = mapping[index].value
-    model.row_lb[row] = set.lower - func.constant
-    return
-end
-
-function _load_constraint(
-    index::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.ScalarAffineFunction,
-    set::MOI.LessThan,
-)
-    _add_terms(model, mapping, index, func)
-    row = mapping[index].value
-    model.row_ub[row] = set.upper - func.constant
-    return
-end
-
-function _load_constraint(
-    index::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.ScalarAffineFunction,
-    set::MOI.Interval,
-)
-    _add_terms(model, mapping, index, func)
-    row = mapping[index].value
-    model.row_ub[row] = set.upper - func.constant
-    model.row_lb[row] = set.lower - func.constant
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VectorOfVariables,
-    set::MOI.SOS1{Float64},
-)
-    push!(model.sos1_starts, Cint(length(model.sos1_weights)))
-    append!(model.sos1_weights, set.weights)
-    for v in func.variables
-        push!(model.sos1_indices, _column_value(mapping, v) - Cint(1))
-    end
-    return
-end
-
-function _load_constraint(
-    ::MOI.ConstraintIndex,
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    func::MOI.VectorOfVariables,
-    set::MOI.SOS2{Float64},
-)
-    push!(model.sos2_starts, Cint(length(model.sos2_weights)))
-    append!(model.sos2_weights, set.weights)
-    for v in func.variables
-        push!(model.sos2_indices, _column_value(mapping, v) - Cint(1))
-    end
-    return
-end
-
-###
-### ObjectiveSense
-###
-
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
-
-function MOI.set(
-    model::Optimizer,
-    ::MOI.ObjectiveSense,
-    sense::MOI.OptimizationSense,
-)
-    if sense == MOI.MAX_SENSE
-        Cbc_setObjSense(model, -1.0)
-    elseif sense == MOI.MIN_SENSE
-        Cbc_setObjSense(model, 1.0)
-    else
-        @assert sense == MOI.FEASIBILITY_SENSE
-        for col in Cint(0):Cint(Cbc_getNumCols(model) - 1)
-            Cbc_setObjCoeff(model, col, 0.0)
-        end
-        Cbc_setObjSense(model, 0.0)
-    end
-    return
-end
-
-###
-### ObjectiveFunction{ScalarAffineFunction}
-###
 
 function MOI.supports(
     ::Optimizer,
     ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
 )
     return true
-end
-
-function _load_objective(
-    model::_CbcModelFormat,
-    mapping::MOI.IndexMap,
-    dest::Optimizer,
-    src::MOI.ModelLike,
-)
-    F = MOI.get(src, MOI.ObjectiveFunctionType())
-    if !MOI.supports(dest, MOI.ObjectiveFunction{F}())
-        error("Objective function type $(F) not supported.")
-    end
-    f = MOI.get(src, MOI.ObjectiveFunction{F}())
-    # We need to increment values of objective function with += to handle
-    # cases like $x_1 + x_2 + x_1$. This is safe because objective function
-    # is initialized with zeros in the constructor and `_load_objective` only
-    # gets called once.
-    for term in f.terms
-        column = _column_value(mapping, term.variable)
-        model.obj[column] += term.coefficient
-    end
-    model.objective_constant = f.constant
-    return
 end
 
 ###
@@ -525,181 +448,6 @@ function MOI.get(
     x::MOI.VariableIndex,
 )
     return get(model.variable_start, x, nothing)
-end
-
-###
-### This main copy_to function.
-###
-
-function _create_constraint_indices_for_types(
-    src::MOI.ModelLike,
-    mapping::MOI.IndexMap,
-    ::Type{MOI.VariableIndex},
-    S::Type{<:MOI.AbstractSet},
-    num_rows::Int,
-)
-    indices = MOI.get(src, MOI.ListOfConstraintIndices{MOI.VariableIndex,S}())
-    for index in indices
-        f = MOI.get(src, MOI.ConstraintFunction(), index)
-        i = mapping[f].value
-        mapping[index] = MOI.ConstraintIndex{MOI.VariableIndex,S}(i)
-    end
-    return num_rows
-end
-
-function _create_constraint_indices_for_types(
-    src::MOI.ModelLike,
-    mapping::MOI.IndexMap,
-    F::Type{MOI.VectorOfVariables},
-    S::Type{<:Union{MOI.SOS1{Float64},MOI.SOS2{Float64}}},
-    num_rows::Int,
-)
-    n = 0
-    for index in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-        n += 1
-        mapping[index] = MOI.ConstraintIndex{F,S}(n)
-    end
-    return num_rows
-end
-
-function _create_constraint_indices_for_types(
-    src::MOI.ModelLike,
-    mapping::MOI.IndexMap,
-    F::Type{MOI.ScalarAffineFunction{Float64}},
-    S::Type{<:MOI.AbstractScalarSet},
-    num_rows::Int,
-)
-    for index in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-        num_rows += 1
-        mapping[index] = MOI.ConstraintIndex{F,S}(num_rows)
-    end
-    return num_rows
-end
-
-function _create_constraint_indices(
-    dest::Optimizer,
-    src::MOI.ModelLike,
-    mapping::MOI.IndexMap,
-)
-    n = 0
-    for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
-        if !(MOI.supports_constraint(dest, F, S))
-            throw(
-                MOI.UnsupportedConstraint{F,S}(
-                    "Cbc does not support constraints of type $F-in-$S.",
-                ),
-            )
-        end
-        # The type of `F` and `S` is not type-stable, so we use a function
-        # barrier (`_create_constraint_indices_for_types`) to improve
-        # performance.
-        n = _create_constraint_indices_for_types(src, mapping, F, S, n)
-    end
-    return Cint(n)
-end
-
-function _create_variable_indices(src::MOI.ModelLike, mapping::MOI.IndexMap)
-    for (i, x) in enumerate(MOI.get(src, MOI.ListOfVariableIndices()))
-        mapping[x] = MOI.VariableIndex(i)
-    end
-    return Cint(length(mapping.var_map))
-end
-
-function MOI.copy_to(cbc_dest::Optimizer, src::MOI.ModelLike)
-    @assert MOI.is_empty(cbc_dest)
-    mapping = MOI.IndexMap()
-    num_cols = _create_variable_indices(src, mapping)
-    num_rows = _create_constraint_indices(cbc_dest, src, mapping)
-    tmp_model = _CbcModelFormat(num_rows, num_cols)
-    _load_objective(tmp_model, mapping, cbc_dest, src)
-    for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
-        # The type of `F` and `S` is not type-stable, so we use a function
-        # barrier (`_load_constraints`) to improve performance.
-        _load_constraints(tmp_model, src, mapping, F, S)
-    end
-    # Since Cbc doesn't have an explicit binary variable, we need to add [0, 1]
-    # bounds and make it integer (which is done at the end of this function).
-    for column in tmp_model.binary
-        tmp_model.col_lb[column+1] = max(tmp_model.col_lb[column+1], 0.0)
-        tmp_model.col_ub[column+1] = min(tmp_model.col_ub[column+1], 1.0)
-    end
-    A = SparseArrays.sparse(
-        tmp_model.row_idx,
-        tmp_model.col_idx,
-        tmp_model.values,
-        tmp_model.num_rows,
-        tmp_model.num_cols,
-    )
-    Cbc_loadProblem(
-        cbc_dest,
-        tmp_model.num_cols,
-        tmp_model.num_rows,
-        A.colptr .- Cint(1),
-        A.rowval .- Cint(1),
-        A.nzval,
-        tmp_model.col_lb,
-        tmp_model.col_ub,
-        tmp_model.obj,
-        tmp_model.row_lb,
-        tmp_model.row_ub,
-    )
-    MOI.Utilities.pass_attributes(
-        cbc_dest,
-        src,
-        mapping,
-        MOI.get(src, MOI.ListOfVariableIndices()),
-    )
-    for attr in MOI.get(src, MOI.ListOfModelAttributesSet())
-        if attr isa MOI.ObjectiveFunction
-            continue # Already copied
-        end
-        value = MOI.get(src, attr)
-        if value !== nothing
-            mapped_value = MOI.Utilities.map_indices(mapping, value)
-            MOI.set(cbc_dest, attr, mapped_value)
-        end
-    end
-    for (F, S) in MOI.get(src, MOI.ListOfConstraintTypesPresent())
-        cis_src = MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-        MOI.Utilities.pass_attributes(cbc_dest, src, mapping, cis_src)
-    end
-    cbc_dest.objective_constant = tmp_model.objective_constant
-    if length(tmp_model.integer) > 0
-        Cbc_setInteger.(cbc_dest, tmp_model.integer)
-    end
-    if length(tmp_model.binary) > 0
-        Cbc_setInteger.(cbc_dest, tmp_model.binary)
-    end
-    if length(tmp_model.sos1_starts) > 0
-        push!(tmp_model.sos1_starts, Cint(length(tmp_model.sos1_weights)))
-        Cbc_addSOS(
-            cbc_dest,
-            length(tmp_model.sos1_starts) - 1,
-            tmp_model.sos1_starts,
-            tmp_model.sos1_indices,
-            tmp_model.sos1_weights,
-            Cint(1),
-        )
-    end
-    if length(tmp_model.sos2_starts) > 0
-        push!(tmp_model.sos2_starts, Cint(length(tmp_model.sos2_weights)))
-        Cbc_addSOS(
-            cbc_dest,
-            length(tmp_model.sos2_starts) - 1,
-            tmp_model.sos2_starts,
-            tmp_model.sos2_indices,
-            tmp_model.sos2_weights,
-            Cint(2),
-        )
-    end
-    nsos = length(tmp_model.sos1_starts) + length(tmp_model.sos2_starts)
-    if nsos > 0 && Cbc_getNumIntegers(cbc_dest) == 0
-        @warn(
-            "There are known correctness issues using Cbc with SOS " *
-            "constraints and no binary variables.",
-        )
-    end
-    return mapping
 end
 
 ###
