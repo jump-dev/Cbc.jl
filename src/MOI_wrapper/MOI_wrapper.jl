@@ -240,13 +240,13 @@ end
 
 function _constraint_matrix(::Nothing, n)
     return (
-        m = 0,
-        n = n,
-        colptr = Cint[],
+        m = Cint(0),
+        n = Cint(n),
+        colptr = fill(Cint(0), n + 1),
         rowval = Cint[],
-        nzval = Cdouble[],
-        lower = Cdouble[],
-        upper = Cdouble[],
+        nzval = Float64[],
+        lower = Float64[],
+        upper = Float64[],
     )
 end
 
@@ -303,7 +303,7 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
         attr = MOI.ListOfConstraintIndices{MOI.VectorOfVariables,S}()
         for ci in MOI.get(src, attr)
             any_sos = true
-            push!(starts, length(weights))
+            push!(starts, Cint(length(weights)))
             f = MOI.get(src, MOI.ConstraintFunction(), ci)
             for x in f.variables
                 push!(indices, Cint(x.value - 1))
