@@ -10,12 +10,7 @@ MOI.Utilities.@product_of_sets(
 
 MOI.Utilities.@struct_of_constraints_by_set_types(
     _CbcConstraints,
-    Union{
-        MOI.EqualTo{T},
-        MOI.LessThan{T},
-        MOI.GreaterThan{T},
-        MOI.Interval{T},
-    },
+    Union{MOI.EqualTo{T},MOI.LessThan{T},MOI.GreaterThan{T},MOI.Interval{T}},
     MOI.SOS1{T},
     MOI.SOS2{T},
 )
@@ -175,7 +170,6 @@ end
 function MOI.is_empty(model::Optimizer)
     return Cbc_getNumCols(model) == 0 && Cbc_getNumRows(model) == 0
 end
-
 
 function _index_map(
     src::OptimizerCache,
