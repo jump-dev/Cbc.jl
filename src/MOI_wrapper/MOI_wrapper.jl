@@ -16,8 +16,6 @@ MOI.Utilities.@struct_of_constraints_by_set_types(
         MOI.GreaterThan{T},
         MOI.Interval{T},
     },
-    MOI.ZeroOne,
-    MOI.Integer,
     MOI.SOS1{T},
     MOI.SOS2{T},
 )
@@ -37,8 +35,6 @@ const OptimizerCache = MOI.Utilities.GenericModel{
             MOI.Utilities.Hyperrectangle{Float64},
             _LPProductOfSets{Float64},
         },
-        MOI.Utilities.VectorOfConstraints{MOI.VariableIndex,MOI.ZeroOne},
-        MOI.Utilities.VectorOfConstraints{MOI.VariableIndex,MOI.Integer},
         MOI.Utilities.VectorOfConstraints{
             MOI.VectorOfVariables,
             MOI.SOS1{Float64},
@@ -323,6 +319,7 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
         end
         N = Cint(length(starts))
         if N > 0
+            push!(starts, length(weights))
             Cbc_addSOS(dest, N, starts, indices, weights, Cint(type))
         end
     end
