@@ -124,6 +124,7 @@ function test_threads()
     MOI.set(model, MOI.RawOptimizerAttribute("cuts"), "off")
     MOI.set(model, MOI.RawOptimizerAttribute("heur"), "off")
     MOI.set(model, MOI.RawOptimizerAttribute("threads"), 4)
+    MOI.set(model, MOI.RawOptimizerAttribute("logLevel"), 3)
     N = 100
     x = MOI.add_variables(model, N)
     MOI.add_constraint.(model, x, MOI.ZeroOne())
