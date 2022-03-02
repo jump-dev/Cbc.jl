@@ -28,12 +28,9 @@ function test_supports_incremental_interface()
 end
 
 function test_runtests()
-    model = MOI.Bridges.full_bridge_optimizer(
-        MOI.Utilities.CachingOptimizer(
-            MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
-            Cbc.Optimizer(),
-        ),
-        Float64,
+    model = MOI.Utilities.CachingOptimizer(
+        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+        MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
     )
     MOI.set(model, MOI.Silent(), true)
     MOI.Test.runtests(
@@ -47,14 +44,8 @@ function test_runtests()
             ],
         ),
         exclude = [
-            # TODO(odow): bug in Cbc.jl
-            "test_model_copy_to_UnsupportedAttribute",
-            "test_model_ModelFilter_AbstractConstraintAttribute",
-            # TODO(odow): bug in MOI
-            "test_model_LowerBoundAlreadySet",
-            "test_model_UpperBoundAlreadySet",
             # TODO(odow): upstream bug in Cbc
-            "_Indicator_",
+            "test_linear_Indicator_",
             "test_linear_SOS1_integration",
             "test_linear_SOS2_integration",
             "test_solve_SOS2_add_and_delete",
