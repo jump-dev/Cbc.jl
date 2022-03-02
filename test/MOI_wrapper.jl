@@ -151,6 +151,43 @@ function test_PrimalStatus()
     return
 end
 
+function test_issue_187()
+    if Sys.iswindows() || Sys.islinux()
+        # This test segfaults on Windows and Linux
+        @test_broken 1 == 2
+        return
+    end
+    model = MOI.Utilities.CachingOptimizer(
+        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+        MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
+    )
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variables(model, 2)
+    MOI.add_constraint.(model, x, MOI.ZeroOne())
+    MOI.set.(model, MOI.VariablePrimalStart(), x, 0.0)
+    y = MOI.add_variables(model, 2)
+    MOI.add_constraint.(model, y, MOI.ZeroOne())
+
+    MOI.add_constraint(
+        model,
+        MOI.Utilities.operate(vcat, Float64, x[1], 1.0 * y[1]),
+        MOI.Indicator{MOI.ACTIVATE_ON_ONE}(MOI.EqualTo(1.0)),
+    )
+    MOI.add_constraint(
+        model,
+        MOI.Utilities.operate(vcat, Float64, x[2], 1.0 * y[1]),
+        MOI.Indicator{MOI.ACTIVATE_ON_ONE}(MOI.EqualTo(0.0)),
+    )
+    MOI.set.(model, MOI.VariablePrimalStart(), y, 0.0)
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(1.0, x), 0.0)
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test ≈(sum(MOI.get(model, MOI.VariablePrimal(), x)), 1.0, atol = 1e-4)
+    return
+end
+
 # The test_linear_SOS1_integration test with the additional requirement that all
 # variables are integer.
 function test_SOS1()
