@@ -102,15 +102,15 @@ function MOI.set(
         throw(MOI.UnsupportedAttribute(param))
     end
     model.params[param.name] = value
-    if name == "threads" && Sys.iswindows()
+    if param.name == "threads" && Sys.iswindows()
         @warn(
             "Ignoring threads parameter due to known bugs in Cbc.jl. Read " *
             "https://github.com/jump-dev/Cbc.jl/issues/186 for more details.",
         )
         return
     end
-    if !(model.silent && name == "logLevel")
-        Cbc_setParameter(model, name, value)
+    if !(model.silent && param.name == "logLevel")
+        Cbc_setParameter(model, param.name, value)
     end
     return
 end
