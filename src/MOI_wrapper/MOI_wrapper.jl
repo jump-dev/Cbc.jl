@@ -101,10 +101,16 @@ function MOI.set(
     if !MOI.supports(model, param)
         throw(MOI.UnsupportedAttribute(param))
     end
-    name = string(param.name)
-    model.params[name] = value
-    if !(model.silent && name == "logLevel")
-        Cbc_setParameter(model, name, value)
+    model.params[param.name] = value
+    if param.name == "threads" && Sys.iswindows()
+        @warn(
+            "Ignoring threads parameter due to known bugs in CBC. Read " *
+            "https://github.com/jump-dev/Cbc.jl/issues/186 for more details.",
+        )
+        return
+    end
+    if !(model.silent && param.name == "logLevel")
+        Cbc_setParameter(model, param.name, value)
     end
     return
 end
@@ -112,7 +118,7 @@ end
 function MOI.get(model::Optimizer, param::MOI.RawOptimizerAttribute)
     # TODO: This gives a poor error message if the name of the parameter is
     # invalid.
-    return model.params[string(param.name)]
+    return model.params[param.name]
 end
 
 MOI.supports(::Optimizer, ::MOI.Silent) = true
@@ -155,7 +161,7 @@ function MOI.empty!(model::Optimizer)
     model.termination_status = Cint(-1)
     model.solve_time = 0.0
     for (name, value) in model.params
-        Cbc_setParameter(model, name, value)
+        MOI.set(model, MOI.RawOptimizerAttribute(name), value)
     end
     if model.silent
         Cbc_setParameter(model, "logLevel", "0")
