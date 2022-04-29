@@ -1,3 +1,8 @@
+# Copyright (c) 2013: Cbc.jl contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
 # Julia wrapper for header: Coin_C_defines.h
 # Automatically generated using Clang.jl
 
