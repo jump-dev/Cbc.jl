@@ -597,7 +597,8 @@ MOI.get(model::Optimizer, ::SecondaryStatus) = Cbc_secondaryStatus(model)
 const _STATUS = Dict{Cint,String}(
     Cint(-1) => "before branchAndBound",
     Cint(0) =>
-        "finished - check isProvenOptimal or isProvenInfeasible to see if solution found (or check value of best solution)",
+        "finished - check isProvenOptimal or isProvenInfeasible to see if " *
+        "solution found (or check value of best solution)",
     Cint(1) => "stopped - on maxnodes, maxsols, maxtime",
     Cint(2) => "execution abandoned due to numerical dificulties",
     Cint(5) => "user programmed interruption",
