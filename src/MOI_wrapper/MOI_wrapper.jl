@@ -134,6 +134,7 @@ function MOI.set(model::Optimizer, ::MOI.Silent, value::Bool)
     end
     log_level = value ? "0" : get(model.params, "logLevel", "1")
     Cbc_setParameter(model, "logLevel", log_level)
+    Cbc_setParameter(model, "slogLevel", log_level)
     model.silent = value
     return
 end
@@ -170,6 +171,7 @@ function MOI.empty!(model::Optimizer)
     end
     if model.silent
         Cbc_setParameter(model, "logLevel", "0")
+        Cbc_setParameter(model, "slogLevel", "0")
     end
     empty!(model.variable_start)
     model.has_solution = false
