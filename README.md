@@ -25,6 +25,9 @@ import Pkg; Pkg.add("Cbc")
 In addition to installing the Cbc.jl package, this will also download and
 install the Cbc binaries. (You do not need to install Cbc separately.)
 
+To use a custom binary, read the [Custom solver binaries](https://jump.dev/JuMP.jl/stable/developers/custom_solver_binaries/)
+section of the JuMP documentation.
+
 ## Use with JuMP
 
 To use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl), use `Cbc.Optimizer`:
