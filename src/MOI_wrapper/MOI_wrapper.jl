@@ -58,7 +58,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     variable_start::Dict{MOI.VariableIndex,Float64}
     objective_constant::Float64
     solve_time::Float64
-    termination_status::Cint
+    Cbc_solve_return_code::Cint
+    termination_status::MOI.TerminationStatusCode
     has_solution::Bool
     variable_primal::Union{Nothing,Vector{Float64}}
     constraint_primal::Union{Nothing,Vector{Float64}}
@@ -72,6 +73,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             0.0,
             0.0,
             Cint(-1),
+            MOI.OPTIMIZE_NOT_CALLED,
             false,
             nothing,
             nothing,
@@ -163,7 +165,8 @@ function MOI.empty!(model::Optimizer)
     Cbc_deleteModel(model)
     model.inner = Cbc_newModel()
     model.objective_constant = 0.0
-    model.termination_status = Cint(-1)
+    model.Cbc_solve_return_code = Cint(-1)
+    model.termination_status = MOI.OPTIMIZE_NOT_CALLED
     model.solve_time = 0.0
     for (name, value) in model.params
         MOI.set(model, MOI.RawOptimizerAttribute(name), value)
@@ -480,9 +483,10 @@ function MOI.optimize!(model::Optimizer)
     t = time()
     model.variable_primal = nothing
     model.constraint_primal = nothing
-    model.termination_status = Cbc_solve(model)
+    model.Cbc_solve_return_code = Cbc_solve(model)
     model.has_solution = _result_count(model)
     model.solve_time = time() - t
+    model.termination_status = _termination_status(model)
     return
 end
 
@@ -619,7 +623,7 @@ const _SECONDARY_STATUS = Dict{Cint,String}(
 
 function MOI.get(model::Optimizer, ::MOI.RawStatusString)
     return """
-    Cbc_status          = $(_STATUS[model.termination_status])
+    Cbc_status          = $(_STATUS[model.Cbc_solve_return_code])
     Cbc_secondaryStatus = $(_SECONDARY_STATUS[Cbc_secondaryStatus(model)])
     """
 end
@@ -630,13 +634,15 @@ function _result_count(model::Optimizer)
     if Cbc_getNumIntegers(model) == 0
         # Cbc forwards the solve to the LP solver if there are no integers, so
         # check the termination status for the result count.
-        return model.termination_status == 0 ? 1 : 0
+        return model.Cbc_solve_return_code == 0 ? 1 : 0
     end
     return Cbc_numberSavedSolutions(model) > 0 ? 1 : 0
 end
 
-function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
-    status = model.termination_status
+MOI.get(model::Optimizer, ::MOI.TerminationStatus) = model.termination_status
+
+function _termination_status(model::Optimizer)
+    status = model.Cbc_solve_return_code
     if status == -1
         return MOI.OPTIMIZE_NOT_CALLED
     elseif Cbc_isProvenOptimal(model) != 0
