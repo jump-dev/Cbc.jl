@@ -1,7 +1,7 @@
 name = "Cbc"
 uuid = "9961bab8-2fa3-5c5a-9d89-47fab24efd76"
 repo = "https://github.com/jump-dev/Cbc.jl.git"
-version = "1.0.1"
+version = "1.0.2"
 
 [deps]
 Cbc_jll = "38041ee0-ae04-5750-a4d2-bb4d0d83d27d"
