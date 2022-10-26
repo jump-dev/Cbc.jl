@@ -19,7 +19,7 @@ function __init__()
     else
         VersionNumber(version_str)
     end
-    if !(v"2.10.0" <= version <= v"2.10.5")
+    if !(v"2.10.0" <= version < v"2.11")
         error("""
         You have installed version $version of Cbc, which is not supported by
         Cbc.jl We require Cbc version 2.10. After installing Cbc 2.10, run:
