@@ -440,7 +440,7 @@ function test_variable_name()
         name = Vector{Cchar}(undef, 100)
         GC.@preserve name begin
             ptr = Cstring(pointer(name))
-            Cbc_getColName(cbc, Cint(0), ptr, 100)
+            Cbc.Cbc_getColName(cbc, Cint(0), ptr, 100)
             @test unsafe_string(ptr) == inner
         end
     end
