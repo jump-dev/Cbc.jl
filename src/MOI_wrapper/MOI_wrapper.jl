@@ -311,6 +311,14 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
     for ci in MOI.get(src, attr)
         Cbc_setInteger(dest, Cint(ci.value - 1))
     end
+    if MOI.VariableName() in MOI.get(src, MOI.ListOfVariableAttributesSet())
+        for (i, x) in enumerate(MOI.get(src, MOI.ListOfVariableIndices()))
+            name = MOI.get(src, MOI.VariableName(), x)
+            if !isempty(name) && isascii(name)
+                Cbc_setColName(dest, Cint(i - 1), name)
+            end
+        end
+    end
     any_sos = false
     for (S, type) in ((MOI.SOS1{Float64}, 1), (MOI.SOS2{Float64}, 2))
         starts, indices, weights = Cint[], Cint[], Float64[]

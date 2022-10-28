@@ -430,6 +430,23 @@ function test_VariablePrimalStart()
     return
 end
 
+function test_variable_name()
+    for (name, inner) in [("abc", "abc"), ("απ", "C0000000")]
+        model = MOI.Utilities.Model{Float64}()
+        x = MOI.add_variable(model)
+        MOI.set(model, MOI.VariableName(), x, name)
+        cbc = Cbc.Optimizer()
+        MOI.copy_to(cbc, model)
+        name = Vector{Cchar}(undef, 100)
+        GC.@preserve name begin
+            ptr = Cstring(pointer(name))
+            Cbc_getColName(cbc, Cint(0), ptr, 100)
+            @test unsafe_string(ptr) == inner
+        end
+    end
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
