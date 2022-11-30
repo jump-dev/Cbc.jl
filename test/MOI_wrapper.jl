@@ -436,13 +436,8 @@ function test_variable_name()
         x = MOI.add_variable(model)
         MOI.set(model, MOI.VariableName(), x, name)
         cbc = Cbc.Optimizer()
-        MOI.copy_to(cbc, model)
-        name = Vector{Cchar}(undef, 100)
-        GC.@preserve name begin
-            ptr = Cstring(pointer(name))
-            Cbc.Cbc_getColName(cbc, Cint(0), ptr, 100)
-            @test unsafe_string(ptr) == inner
-        end
+        index_map = MOI.copy_to(cbc, model)
+        @test MOI.get(cbc, MOI.VariableName(), index_map[x]) == inner
     end
     return
 end

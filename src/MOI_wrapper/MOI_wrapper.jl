@@ -312,10 +312,10 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
         Cbc_setInteger(dest, Cint(ci.value - 1))
     end
     if MOI.VariableName() in MOI.get(src, MOI.ListOfVariableAttributesSet())
-        for (i, x) in enumerate(MOI.get(src, MOI.ListOfVariableIndices()))
+        for x in MOI.get(src, MOI.ListOfVariableIndices())
             name = MOI.get(src, MOI.VariableName(), x)
             if !isempty(name) && isascii(name)
-                Cbc_setColName(dest, Cint(i - 1), name)
+                MOI.set(dest, MOI.VariableName(), x, name)
             end
         end
     end
@@ -472,6 +472,33 @@ function MOI.get(
     x::MOI.VariableIndex,
 )
     return get(model.variable_start, x, nothing)
+end
+
+###
+### VariableName
+###
+
+MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.VariableName,
+    x::MOI.VariableIndex,
+    name::String,
+)
+    @assert isascii(name)
+    Cbc_setColName(model, Cint(x.value - 1), name)
+    return
+end
+
+function MOI.get(model::Optimizer, ::MOI.VariableName, x::MOI.VariableIndex)
+    max_length = 512
+    name = Vector{Cchar}(undef, max_length)
+    GC.@preserve name begin
+        ptr = Cstring(pointer(name))
+        Cbc_getColName(model, Cint(x.value - 1), ptr, max_length)
+        return unsafe_string(ptr)
+    end
 end
 
 ###
