@@ -430,6 +430,18 @@ function test_VariablePrimalStart()
     return
 end
 
+function test_variable_name()
+    for (name, inner) in [("abc", "abc"), ("απ", "C0000000")]
+        model = MOI.Utilities.Model{Float64}()
+        x = MOI.add_variable(model)
+        MOI.set(model, MOI.VariableName(), x, name)
+        cbc = Cbc.Optimizer()
+        index_map = MOI.copy_to(cbc, model)
+        @test MOI.get(cbc, MOI.VariableName(), index_map[x]) == inner
+    end
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
