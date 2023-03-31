@@ -46,6 +46,27 @@ model = Model(Cbc.Optimizer)
 set_optimizer_attribute(model, "logLevel", 1)
 ```
 
+## Supported problem types
+
+List of supported objective function types:
+
+ * `MOI.ScalarAffineFunction{Float64}`
+
+List of supported constraint types:
+
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.EqualTo{Float64}`
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.GreaterThan{Float64}`
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.Interval{Float64}`
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.LessThan{Float64}`
+ * `MOI.VariableIndex` in `MOI.EqualTo{Float64}`
+ * `MOI.VariableIndex` in `MOI.GreaterThan{Float64}`
+ * `MOI.VariableIndex` in `MOI.Integer`
+ * `MOI.VariableIndex` in `MOI.Interval{Float64}`
+ * `MOI.VariableIndex` in `MOI.LessThan{Float64}`
+ * `MOI.VariableIndex` in `MOI.ZeroOne`
+ * `MOI.VectorOfVariables` in `MOI.SOS1{Float64}`
+ * `MOI.VectorOfVariables` in `MOI.SOS2{Float64}`
+
 ## Options
 
 Options are, unfortunately, not well documented.
