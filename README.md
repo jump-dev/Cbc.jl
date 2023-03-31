@@ -48,9 +48,10 @@ set_optimizer_attribute(model, "logLevel", 1)
 
 ## Supported problem types
 
-List of supported objective function types:
+List of supported model attributes:
 
- * `MOI.ScalarAffineFunction{Float64}`
+ * `MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`
+ * `MOI.ObjectiveSense`
 
 List of supported constraint types:
 
