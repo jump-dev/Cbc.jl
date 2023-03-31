@@ -5,21 +5,30 @@
 [![Build Status](https://github.com/jump-dev/Cbc.jl/workflows/CI/badge.svg?branch=master)](https://github.com/jump-dev/Cbc.jl/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/jump-dev/Cbc.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jump-dev/Cbc.jl)
 
-`Cbc.jl` is a wrapper for the [COIN-OR Branch and Cut (Cbc)](https://projects.coin-or.org/Cbc)
+[Cbc.jl](https://github.com/jump-dev/Cbc.jl) is a wrapper for the [COIN-OR Branch and Cut (Cbc)](https://projects.coin-or.org/Cbc)
 solver.
 
 The wrapper has two components:
  * a thin wrapper around the complete C API
- * an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface)
+ * an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
 
-*Note: This wrapper is maintained by the JuMP community and is not a COIN-OR
-project.*
+## Affiliation
+
+This wrapper is maintained by the JuMP community and is not a COIN-OR project.
+
+## License
+
+`Cbc.jl` is licensed under the [MIT License](https://github.com/jump-dev/Cbc.jl/blob/master/LICENSE.md).
+
+The underlying solver, [coin-or/Cbc](https://github.com/coin-or/Cbc), is
+licensed under the [Eclipse public license](https://github.com/coin-or/Cbc/blob/master/LICENSE).
 
 ## Installation
 
 Install Cbc.jl using `Pkg.add`:
 ```julia
-import Pkg; Pkg.add("Cbc")
+import Pkg
+Pkg.add("Cbc")
 ```
 
 In addition to installing the Cbc.jl package, this will also download and
