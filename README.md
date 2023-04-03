@@ -43,30 +43,35 @@ To use Cbc with [JuMP](https://github.com/jump-dev/JuMP.jl), use `Cbc.Optimizer`
 ```julia
 using JuMP, Cbc
 model = Model(Cbc.Optimizer)
-set_optimizer_attribute(model, "logLevel", 1)
+set_attribute(model, "logLevel", 1)
 ```
 
-## Supported problem types
+## MathOptInterface API
 
-List of supported model attributes:
+The COIN Branch-and-Cut (Cbc) optimizer supports the following constraints and attributes.
 
- * `MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`
- * `MOI.ObjectiveSense`
+List of supported objective functions:
+
+ * [`MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`](@ref)
 
 List of supported constraint types:
 
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.EqualTo{Float64}`
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.GreaterThan{Float64}`
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.Interval{Float64}`
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.LessThan{Float64}`
- * `MOI.VariableIndex` in `MOI.EqualTo{Float64}`
- * `MOI.VariableIndex` in `MOI.GreaterThan{Float64}`
- * `MOI.VariableIndex` in `MOI.Integer`
- * `MOI.VariableIndex` in `MOI.Interval{Float64}`
- * `MOI.VariableIndex` in `MOI.LessThan{Float64}`
- * `MOI.VariableIndex` in `MOI.ZeroOne`
- * `MOI.VectorOfVariables` in `MOI.SOS1{Float64}`
- * `MOI.VectorOfVariables` in `MOI.SOS2{Float64}`
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Integer`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.ZeroOne`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SOS1{Float64}`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SOS2{Float64}`](@ref)
+
+List of supported model attributes:
+
+ * [`MOI.ObjectiveSense()`](@ref)
 
 ## Options
 
