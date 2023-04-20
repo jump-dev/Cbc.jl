@@ -442,6 +442,16 @@ function test_variable_name()
     return
 end
 
+function test_segfault()
+    model = MOI.FileFormats.MOF.Model()
+    MOI.read_from_file(model, joinpath(@__DIR__, "segfault.mof.json"))
+    cbc = Cbc.Optimizer()
+    _ = MOI.copy_to(cbc, model)
+    MOI.optimize!(cbc)
+    @test MOI.get(cbc, MOI.TerminationStatus()) == MOI.OPTIMAL
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
