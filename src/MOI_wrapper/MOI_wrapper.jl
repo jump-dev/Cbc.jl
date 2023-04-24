@@ -50,6 +50,17 @@ const OptimizerCache = MOI.Utilities.GenericModel{
     Optimizer()
 
 Create a new Cbc Optimizer.
+
+## Variable names
+
+By default, Cbc.jl will pass variable names to the C model. In some instances,
+this has caused segfaults. Disable names being passed to the C model using
+```julia
+using JuMP, Cbc
+model = Model(
+    optimizer_with_attributes(Cbc.Optimizer, Cbc.SetVariableNames() => false),
+)
+```
 """
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Ptr{Cvoid}
@@ -63,7 +74,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     has_solution::Bool
     variable_primal::Union{Nothing,Vector{Float64}}
     constraint_primal::Union{Nothing,Vector{Float64}}
-
+    set_names::Bool
     function Optimizer()
         model = new(
             Cbc_newModel(),
@@ -77,6 +88,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             false,
             nothing,
             nothing,
+            true,
         )
         finalizer(Cbc_deleteModel, model)
         return model
@@ -89,6 +101,17 @@ Base.unsafe_convert(::Type{Ptr{Cvoid}}, model::Optimizer) = model.inner
 function MOI.default_cache(::Optimizer, ::Type{Float64})
     return MOI.Utilities.UniversalFallback(OptimizerCache())
 end
+
+struct SetVariableNames <: MOI.AbstractOptimizerAttribute end
+
+MOI.supports(::Optimizer, ::SetVariableNames) = true
+
+function MOI.set(model::Optimizer, ::SetVariableNames, flag::Bool)
+    model.set_names = flag
+    return
+end
+
+MOI.get(model::Optimizer, ::SetVariableNames) = model.set_names
 
 function MOI.supports(::Optimizer, ::MOI.RawOptimizerAttribute)
     # TODO(odow): There is no programatical way throught the C API to check if a
@@ -487,7 +510,9 @@ function MOI.set(
     name::String,
 )
     @assert isascii(name)
-    Cbc_setColName(model, Cint(x.value - 1), name)
+    if MOI.get(model, SetVariableNames())
+        Cbc_setColName(model, Cint(x.value - 1), name)
+    end
     return
 end
 

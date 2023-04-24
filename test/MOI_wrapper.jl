@@ -442,6 +442,24 @@ function test_variable_name()
     return
 end
 
+"""
+This example segfaults if variable names are set. Turn them off and check we get
+a feasible solution.
+"""
+function test_segfault()
+    src = MOI.FileFormats.MOF.Model()
+    MOI.read_from_file(src, joinpath(@__DIR__, "segfault.mof.json"))
+    cbc = Cbc.Optimizer()
+    @test MOI.supports(cbc, Cbc.SetVariableNames())
+    @test MOI.get(cbc, Cbc.SetVariableNames()) == true
+    MOI.set(cbc, Cbc.SetVariableNames(), false)
+    @test MOI.get(cbc, Cbc.SetVariableNames()) == false
+    index_map = MOI.copy_to(cbc, src)
+    MOI.optimize!(cbc)
+    @test MOI.get(cbc, MOI.TerminationStatus()) == MOI.OPTIMAL
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
