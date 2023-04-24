@@ -53,12 +53,13 @@ Create a new Cbc Optimizer.
 
 ## Variable names
 
-By default, Cbc.jl will pass variable names to the C model. In some instances,
-this has caused segfaults. Disable names being passed to the C model using
+By default, Cbc.jl will not pass variable names to the C model because, in some
+instances, this has caused segfaults. Enable names being passed to the C model
+using:
 ```julia
 using JuMP, Cbc
 model = Model(
-    optimizer_with_attributes(Cbc.Optimizer, Cbc.SetVariableNames() => false),
+    optimizer_with_attributes(Cbc.Optimizer, Cbc.SetVariableNames() => true),
 )
 ```
 """
@@ -88,7 +89,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             false,
             nothing,
             nothing,
-            true,
+            false,
         )
         finalizer(Cbc_deleteModel, model)
         return model

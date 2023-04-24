@@ -436,6 +436,7 @@ function test_variable_name()
         x = MOI.add_variable(model)
         MOI.set(model, MOI.VariableName(), x, name)
         cbc = Cbc.Optimizer()
+        MOI.set(cbc, Cbc.SetVariableNames(), true)
         index_map = MOI.copy_to(cbc, model)
         @test MOI.get(cbc, MOI.VariableName(), index_map[x]) == inner
     end
@@ -451,6 +452,8 @@ function test_segfault()
     MOI.read_from_file(src, joinpath(@__DIR__, "segfault.mof.json"))
     cbc = Cbc.Optimizer()
     @test MOI.supports(cbc, Cbc.SetVariableNames())
+    @test MOI.get(cbc, Cbc.SetVariableNames()) == false
+    MOI.set(cbc, Cbc.SetVariableNames(), true)
     @test MOI.get(cbc, Cbc.SetVariableNames()) == true
     MOI.set(cbc, Cbc.SetVariableNames(), false)
     @test MOI.get(cbc, Cbc.SetVariableNames()) == false
