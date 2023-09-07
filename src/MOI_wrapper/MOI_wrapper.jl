@@ -187,6 +187,7 @@ function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, value::Integer)
     MOI.set(model, MOI.RawOptimizerAttribute("threads"), value)
     return
 end
+
 function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, ::Nothing)
     delete!(model.params, "threads")
     Cbc_setParameter(model, "threads", "InvalidIntValue")
@@ -196,6 +197,42 @@ end
 function MOI.get(model::Optimizer, ::MOI.NumberOfThreads)
     value = get(model.params, "threads", nothing)
     return value === nothing ? value : parse(Int, value)
+end
+
+MOI.supports(::Optimizer, ::MOI.AbsoluteGapTolerance) = true
+
+function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, value::Real)
+    MOI.set(model, MOI.RawOptimizerAttribute("allowableGap"), value)
+    return
+end
+
+function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, ::Nothing)
+    delete!(model.params, "allowableGap")
+    Cbc_setParameter(model, "allowableGap", "InvalidDoubleValue")
+    return
+end
+
+function MOI.get(model::Optimizer, ::MOI.AbsoluteGapTolerance)
+    value = get(model.params, "allowableGap", nothing)
+    return value === nothing ? value : parse(Float64, value)
+end
+
+MOI.supports(::Optimizer, ::MOI.RelativeGapTolerance) = true
+
+function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, value::Real)
+    MOI.set(model, MOI.RawOptimizerAttribute("ratioGap"), value)
+    return
+end
+
+function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, ::Nothing)
+    delete!(model.params, "ratioGap")
+    Cbc_setParameter(model, "ratioGap", "InvalidDoubleValue")
+    return
+end
+
+function MOI.get(model::Optimizer, ::MOI.RelativeGapTolerance)
+    value = get(model.params, "ratioGap", nothing)
+    return value === nothing ? value : parse(Float64, value)
 end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "COIN Branch-and-Cut (Cbc)"
