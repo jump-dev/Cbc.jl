@@ -181,6 +181,36 @@ function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
     return value === nothing ? value : parse(Float64, value)
 end
 
+MOI.supports(::Optimizer, ::MOI.AbsoluteGapTolerance) = true
+function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, value)
+    if value === nothing
+        delete!(model.params, "allowableGap")
+        Cbc_setParameter(model, "allowableGap", "InvalidDoubleValue")
+    else
+        MOI.set(model, MOI.RawOptimizerAttribute("allowableGap"), value)
+    end
+    return
+end
+function MOI.get(model::Optimizer, ::MOI.AbsoluteGapTolerance)
+    value = get(model.params, "allowableGap", nothing)
+    return value === nothing ? value : parse(Float64, value)
+end
+
+MOI.supports(::Optimizer, ::MOI.RelativeGapTolerance) = true
+function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, value)
+    if value === nothing
+        delete!(model.params, "ratioGap")
+        Cbc_setParameter(model, "ratioGap", "InvalidDoubleValue")
+    else
+        MOI.set(model, MOI.RawOptimizerAttribute("ratioGap"), value)
+    end
+    return
+end
+function MOI.get(model::Optimizer, ::MOI.RelativeGapTolerance)
+    value = get(model.params, "ratioGap", nothing)
+    return value === nothing ? value : parse(Float64, value)
+end
+
 MOI.get(::Optimizer, ::MOI.SolverName) = "COIN Branch-and-Cut (Cbc)"
 
 MOI.get(::Optimizer, ::MOI.SolverVersion) = unsafe_string(Cbc_getVersion())
