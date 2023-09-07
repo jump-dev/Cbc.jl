@@ -182,30 +182,36 @@ function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
 end
 
 MOI.supports(::Optimizer, ::MOI.AbsoluteGapTolerance) = true
-function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, value)
-    if value === nothing
-        delete!(model.params, "allowableGap")
-        Cbc_setParameter(model, "allowableGap", "InvalidDoubleValue")
-    else
-        MOI.set(model, MOI.RawOptimizerAttribute("allowableGap"), value)
-    end
+
+function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, value::Real)
+    MOI.set(model, MOI.RawOptimizerAttribute("allowableGap"), value)
     return
 end
+
+function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, ::Nothing)
+    delete!(model.params, "allowableGap")
+    Cbc_setParameter(model, "allowableGap", "InvalidDoubleValue")
+    return
+end
+
 function MOI.get(model::Optimizer, ::MOI.AbsoluteGapTolerance)
     value = get(model.params, "allowableGap", nothing)
     return value === nothing ? value : parse(Float64, value)
 end
 
 MOI.supports(::Optimizer, ::MOI.RelativeGapTolerance) = true
-function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, value)
-    if value === nothing
-        delete!(model.params, "ratioGap")
-        Cbc_setParameter(model, "ratioGap", "InvalidDoubleValue")
-    else
-        MOI.set(model, MOI.RawOptimizerAttribute("ratioGap"), value)
-    end
+
+function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, value::Real)
+    MOI.set(model, MOI.RawOptimizerAttribute("ratioGap"), value)
     return
 end
+
+function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, ::Nothing)
+    delete!(model.params, "ratioGap")
+    Cbc_setParameter(model, "ratioGap", "InvalidDoubleValue")
+    return
+end
+
 function MOI.get(model::Optimizer, ::MOI.RelativeGapTolerance)
     value = get(model.params, "ratioGap", nothing)
     return value === nothing ? value : parse(Float64, value)
