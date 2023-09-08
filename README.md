@@ -76,7 +76,41 @@ List of supported constraint types:
 
 List of supported model attributes:
 
- * [`MOI.ObjectiveSense()`](@ref)
+ * `Cbc.Status`
+ * `Cbc.SecondaryStatus`
+ * [`MOI.DualStatus`](@ref)
+ * [`MOI.NodeCount`](@ref)
+ * [`MOI.NumberOfVariables`](@ref)
+ * [`MOI.ObjectiveBound`](@ref)
+ * [`MOI.ObjectiveSense`](@ref)
+ * [`MOI.ObjectiveValue`](@ref)
+ * [`MOI.PrimalStatus`](@ref)
+ * [`MOI.RelativeGap`](@ref)
+ * [`MOI.ResultCount`](@ref)
+ * [`MOI.SolveTimeSec`](@ref)
+ * [`MOI.TerminationStatus`](@ref)
+ 
+List of supported optimizer attributes:
+
+ * `Cbc.SetVariableNames`
+ * [`MOI.AbsoluteGapTolerance`](@ref)
+ * [`MOI.NumberOfThreads`](@ref)
+ * [`MOI.RawOptimizerAttribute`](@ref)
+ * [`MOI.RelativeGapTolerance`](@ref)
+ * [`MOI.Silent`](@ref)
+ * [`MOI.SolverName`](@ref)
+ * [`MOI.SolverVersion`](@ref)
+ * [`MOI.TimeLimitSec`](@ref)
+
+List of supported variable attributes:
+
+ * [`MOI.VariablePrimal`](@ref)
+ * [`MOI.VariablePrimalStart`](@ref)
+ * [`MOI.VariableName`](@ref)
+
+List of supported constraint attributes:
+
+ * [`MOI.ConstraintPrimal`](@ref)
 
 ## Options
 
