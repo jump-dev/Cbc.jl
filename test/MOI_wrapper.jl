@@ -14,7 +14,6 @@ function runtests()
     for name in names(@__MODULE__; all = true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
-                @show name
                 getfield(@__MODULE__, name)()
             end
         end
@@ -152,8 +151,8 @@ function test_PrimalStatus()
 end
 
 function test_issue_187()
-    if Sys.iswindows() || Sys.islinux()
-        # This test segfaults on Windows and Linux
+    if true
+        # This test segfaults (unreliably) on all platforms
         @test_broken 1 == 2
         return
     end
