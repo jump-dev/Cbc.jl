@@ -6,15 +6,15 @@
 module TestMOIWrapper
 
 using Test
-using MathOptInterface
-import Cbc
 
-const MOI = MathOptInterface
+import Cbc
+import MathOptInterface as MOI
 
 function runtests()
     for name in names(@__MODULE__; all = true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
+                @show name
                 getfield(@__MODULE__, name)()
             end
         end
