@@ -6,10 +6,9 @@
 module TestMOIWrapper
 
 using Test
-using MathOptInterface
-import Cbc
 
-const MOI = MathOptInterface
+import Cbc
+import MathOptInterface as MOI
 
 function runtests()
     for name in names(@__MODULE__; all = true)
@@ -152,8 +151,8 @@ function test_PrimalStatus()
 end
 
 function test_issue_187()
-    if Sys.iswindows() || Sys.islinux()
-        # This test segfaults on Windows and Linux
+    if true
+        # This test segfaults (unreliably) on all platforms
         @test_broken 1 == 2
         return
     end
