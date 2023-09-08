@@ -181,6 +181,24 @@ function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
     return value === nothing ? value : parse(Float64, value)
 end
 
+MOI.supports(::Optimizer, ::MOI.NumberOfThreads) = true
+
+function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, value::Integer)
+    MOI.set(model, MOI.RawOptimizerAttribute("threads"), value)
+    return
+end
+
+function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, ::Nothing)
+    delete!(model.params, "threads")
+    Cbc_setParameter(model, "threads", "InvalidIntValue")
+    return
+end
+
+function MOI.get(model::Optimizer, ::MOI.NumberOfThreads)
+    value = get(model.params, "threads", nothing)
+    return value === nothing ? value : parse(Int, value)
+end
+
 MOI.supports(::Optimizer, ::MOI.AbsoluteGapTolerance) = true
 
 function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, value::Real)
