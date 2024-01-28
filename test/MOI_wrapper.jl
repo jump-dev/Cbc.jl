@@ -36,6 +36,10 @@ function test_runtests()
         MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
         MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
     )
+    MOI.Bridges.remove_bridge(
+        model.optimizer,
+        MOI.Bridges.Variable.ZerosBridge{Float64},
+    )
     MOI.set(model, MOI.Silent(), true)
     MOI.Test.runtests(
         model,
