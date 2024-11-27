@@ -91,6 +91,7 @@ function test_params()
     )
     model = Cbc.Optimizer()
     MOI.set(model, MOI.RawOptimizerAttribute("maxSol"), 1)
+    @test MOI.get(model, MOI.RawOptimizerAttribute("maxSol")) == "1"
     MOI.set(model, MOI.RawOptimizerAttribute("presolve"), "off")
     MOI.set(model, MOI.RawOptimizerAttribute("cuts"), "off")
     MOI.set(model, MOI.RawOptimizerAttribute("heur"), "off")
@@ -104,6 +105,11 @@ function test_params()
     MOI.optimize!(model)
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.SOLUTION_LIMIT
     @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+    @test MOI.get(model, MOI.RelativeGap()) >= 0
+    @test MOI.is_set_by_optimize(Cbc.Status())
+    @test MOI.get(model, Cbc.Status()) == 1
+    @test MOI.is_set_by_optimize(Cbc.SecondaryStatus())
+    @test MOI.get(model, Cbc.SecondaryStatus()) == 6
     return
 end
 
@@ -167,7 +173,9 @@ function test_issue_187()
     MOI.set(model, MOI.Silent(), true)
     x = MOI.add_variables(model, 2)
     MOI.add_constraint.(model, x, MOI.ZeroOne())
+    @test MOI.get.(model, MOI.VariablePrimalStart(), x) == [nothing, nothing]
     MOI.set.(model, MOI.VariablePrimalStart(), x, 0.0)
+    @test MOI.get.(model, MOI.VariablePrimalStart(), x) == [0.0, 0.0]
     y = MOI.add_variables(model, 2)
     MOI.add_constraint.(model, y, MOI.ZeroOne())
 
@@ -439,7 +447,9 @@ function test_variable_name()
         x = MOI.add_variable(model)
         MOI.set(model, MOI.VariableName(), x, name)
         cbc = Cbc.Optimizer()
+        @test !MOI.supports(cbc, MOI.VariableName(), MOI.VariableIndex)
         MOI.set(cbc, Cbc.SetVariableNames(), true)
+        @test MOI.supports(cbc, MOI.VariableName(), MOI.VariableIndex)
         index_map = MOI.copy_to(cbc, model)
         @test MOI.get(cbc, MOI.VariableName(), index_map[x]) == inner
     end
@@ -463,6 +473,17 @@ function test_segfault()
     index_map = MOI.copy_to(cbc, src)
     MOI.optimize!(cbc)
     @test MOI.get(cbc, MOI.TerminationStatus()) == MOI.OPTIMAL
+    return
+end
+
+function test_get_objective_sense()
+    for sense in (MOI.MIN_SENSE, MOI.MAX_SENSE, MOI.FEASIBILITY_SENSE)
+        model = Cbc.Optimizer()
+        src = MOI.Utilities.Model{Float64}()
+        MOI.set(src, MOI.ObjectiveSense(), sense)
+        MOI.copy_to(model, src)
+        @test MOI.get(model, MOI.ObjectiveSense()) == sense
+    end
     return
 end
 
