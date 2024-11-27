@@ -3,8 +3,6 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-const MOI = MathOptInterface
-
 MOI.Utilities.@product_of_sets(
     _LPProductOfSets,
     MOI.EqualTo{T},
@@ -129,9 +127,6 @@ function MOI.set(
     param::MOI.RawOptimizerAttribute,
     value::String,
 )
-    if !MOI.supports(model, param)
-        throw(MOI.UnsupportedAttribute(param))
-    end
     model.params[param.name] = value
     if param.name == "threads" && Sys.iswindows()
         @warn(
@@ -389,7 +384,8 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
     for ci in MOI.get(src, attr)
         Cbc_setInteger(dest, Cint(ci.value - 1))
     end
-    if MOI.VariableName() in MOI.get(src, MOI.ListOfVariableAttributesSet())
+    if MOI.VariableName() in MOI.get(src, MOI.ListOfVariableAttributesSet()) &&
+       MOI.get(dest, SetVariableNames())::Bool
         for x in MOI.get(src, MOI.ListOfVariableIndices())
             name = MOI.get(src, MOI.VariableName(), x)
             if !isempty(name) && isascii(name)
@@ -556,7 +552,13 @@ end
 ### VariableName
 ###
 
-MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
+function MOI.supports(
+    model::Optimizer,
+    ::MOI.VariableName,
+    ::Type{MOI.VariableIndex},
+)
+    return model.set_names
+end
 
 function MOI.set(
     model::Optimizer,
