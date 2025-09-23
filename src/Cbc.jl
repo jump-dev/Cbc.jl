@@ -6,10 +6,16 @@
 module Cbc
 
 import Cbc_jll: libcbcsolver
+import LinearAlgebra
 import MathOptInterface as MOI
+import OpenBLAS32_jll
 import SparseArrays
 
 function __init__()
+    config = LinearAlgebra.BLAS.lbt_get_config()
+    if !any(lib -> lib.interface == :lp64, config.loaded_libs)
+        LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path)
+    end
     version_str = unsafe_string(Cbc_getVersion())
     version = if version_str == "devel"
         # Support un-released versions of Cbc. These may differ in C API
@@ -19,18 +25,20 @@ function __init__()
         VersionNumber(version_str)
     end
     if !(v"2.10.0" <= version < v"2.11")
-        error("""
-        You have installed version $version of Cbc, which is not supported by
-        Cbc.jl We require Cbc version 2.10. After installing Cbc 2.10, run:
+        error(
+            """
+            You have installed version $version of Cbc, which is not supported by
+            Cbc.jl We require Cbc version 2.10. After installing Cbc 2.10, run:
 
-            import Pkg
-            Pkg.rm("Cbc")
-            Pkg.add("Cbc")
+                import Pkg
+                Pkg.rm("Cbc")
+                Pkg.add("Cbc")
 
-        If you have a newer version of Cbc installed, changes may need to be made
-        to the Julia code. Please open an issue at
-        https://github.com/jump-dev/Cbc.jl.
-        """)
+            If you have a newer version of Cbc installed, changes may need to be
+            made to the Julia code. Please open an issue at
+            https://github.com/jump-dev/Cbc.jl.
+            """,
+        )
     end
     return
 end
