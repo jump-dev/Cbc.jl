@@ -1,0 +1,44 @@
+name: Build on Linux, Run on macOS
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened]
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
+jobs:
+  # The purpose of this job is to install Julia, run binary builder, and store
+  # the solver artifact for the next job.
+  build-jll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.7"
+          arch: x64
+      - uses: julia-actions/cache@v2
+      - run: |
+          julia --color=yes -e 'using Pkg; Pkg.add("BinaryBuilder")'
+          julia --color=yes .github/julia/build_tarballs.jl x86_64-linux-gnu-libgfortran3-cxx11 --verbose --deploy=local
+        env:
+          BINARYBUILDER_RUNNER: privileged
+          BINARYBUILDER_AUTOMATIC_APPLE: true
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.10"
+          arch: x64
+      - run: |
+          cd /home/runner/work/Cbc.jl/Cbc.jl/products
+          tar -xzf Cbc.v200.1000.1200.linux-gnu-libgfortran3-cxx11.tar.gz
+      - shell: julia --color=yes --project=. {0}
+        run: |
+          import Cbc_jll
+          artifact_dir = Cbc_jll.artifact_dir
+          sha = last(splitpath(artifact_dir))
+          dir = escape_string(joinpath(ENV["GITHUB_WORKSPACE"], "products"))
+          content = "$sha = \"$(dir)\"\n"
+          write(replace(artifact_dir, sha => "Overrides.toml"), content)
+      - uses: julia-actions/julia-runtest@v1
