@@ -6,10 +6,16 @@
 module Cbc
 
 import Cbc_jll: libcbcsolver
+import LinearAlgebra
 import MathOptInterface as MOI
+import OpenBLAS32_jll
 import SparseArrays
 
 function __init__()
+    config = LinearAlgebra.BLAS.lbt_get_config()
+    if !any(lib -> lib.interface == :lp64, config.loaded_libs)
+        LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path)
+    end
     version_str = unsafe_string(Cbc_getVersion())
     version = if version_str == "devel"
         # Support un-released versions of Cbc. These may differ in C API
