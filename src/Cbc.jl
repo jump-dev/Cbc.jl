@@ -25,18 +25,20 @@ function __init__()
         VersionNumber(version_str)
     end
     if !(v"2.10.0" <= version < v"2.11")
-        error("""
-        You have installed version $version of Cbc, which is not supported by
-        Cbc.jl We require Cbc version 2.10. After installing Cbc 2.10, run:
+        error(
+            """
+            You have installed version $version of Cbc, which is not supported by
+            Cbc.jl We require Cbc version 2.10. After installing Cbc 2.10, run:
 
-            import Pkg
-            Pkg.rm("Cbc")
-            Pkg.add("Cbc")
+                import Pkg
+                Pkg.rm("Cbc")
+                Pkg.add("Cbc")
 
-        If you have a newer version of Cbc installed, changes may need to be made
-        to the Julia code. Please open an issue at
-        https://github.com/jump-dev/Cbc.jl.
-        """)
+            If you have a newer version of Cbc installed, changes may need to be
+            made to the Julia code. Please open an issue at
+            https://github.com/jump-dev/Cbc.jl.
+            """,
+        )
     end
     return
 end
