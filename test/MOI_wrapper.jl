@@ -161,11 +161,6 @@ function test_PrimalStatus()
 end
 
 function test_issue_187()
-    if true
-        # This test segfaults (unreliably) on all platforms
-        @test_broken 1 == 2
-        return
-    end
     model = MOI.Utilities.CachingOptimizer(
         MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
         MOI.instantiate(Cbc.Optimizer; with_bridge_type = Float64),
@@ -470,6 +465,7 @@ function test_segfault()
     @test MOI.get(cbc, Cbc.SetVariableNames()) == true
     MOI.set(cbc, Cbc.SetVariableNames(), false)
     @test MOI.get(cbc, Cbc.SetVariableNames()) == false
+    MOI.set(cbc, Cbc.SetVariableNames(), true)
     index_map = MOI.copy_to(cbc, src)
     MOI.optimize!(cbc)
     @test MOI.get(cbc, MOI.TerminationStatus()) == MOI.OPTIMAL
