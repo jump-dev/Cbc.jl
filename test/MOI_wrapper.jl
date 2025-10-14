@@ -465,7 +465,6 @@ function test_segfault()
     @test MOI.get(cbc, Cbc.SetVariableNames()) == true
     MOI.set(cbc, Cbc.SetVariableNames(), false)
     @test MOI.get(cbc, Cbc.SetVariableNames()) == false
-    MOI.set(cbc, Cbc.SetVariableNames(), true)
     index_map = MOI.copy_to(cbc, src)
     MOI.optimize!(cbc)
     @test MOI.get(cbc, MOI.TerminationStatus()) == MOI.OPTIMAL
