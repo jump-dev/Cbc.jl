@@ -49,7 +49,6 @@ function test_runtests()
             # Can't prove infeasible.
             "test_conic_NormInfinityCone_INFEASIBLE",
             "test_conic_NormOneCone_INFEASIBLE",
-            "test_solve_TerminationStatus_DUAL_INFEASIBLE",
         ],
     )
     return
