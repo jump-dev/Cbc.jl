@@ -393,12 +393,10 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
             end
         end
     end
-    any_sos = false
     for (S, type) in ((MOI.SOS1{Float64}, 1), (MOI.SOS2{Float64}, 2))
         starts, indices, weights = Cint[], Cint[], Float64[]
         attr = MOI.ListOfConstraintIndices{MOI.VectorOfVariables,S}()
         for ci in MOI.get(src, attr)
-            any_sos = true
             push!(starts, Cint(length(weights)))
             f = MOI.get(src, MOI.ConstraintFunction(), ci)
             for x in f.variables
@@ -412,12 +410,6 @@ function MOI.copy_to(dest::Optimizer, src::OptimizerCache)
             push!(starts, length(weights))
             Cbc_addSOS(dest, N, starts, indices, weights, Cint(type))
         end
-    end
-    if any_sos && Cbc_getNumIntegers(dest) == 0
-        @warn(
-            "There are known correctness issues using Cbc with SOS " *
-            "constraints and no binary variables.",
-        )
     end
     return _index_map(src)
 end
