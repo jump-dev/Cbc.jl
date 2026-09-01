@@ -11,7 +11,7 @@ OpenBLAS32_jll = "656ef2d0-ae68-5445-9ca0-591084a874a2"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-Cbc_jll = "=200.1000.1200"
+Cbc_jll = "=200.1000.1300"
 LinearAlgebra = "1"
 MathOptInterface = "1.7"
 OpenBLAS32_jll = "0.3.10"
